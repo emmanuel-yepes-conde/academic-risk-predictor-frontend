@@ -9,11 +9,31 @@ import { tokenStore } from './api'
 // ─── Request / Response DTOs ─────────────────────────────────────────────────
 
 export interface PredictionInput {
-  promedio_asistencia:       number
-  promedio_seguimiento:      number
-  nota_parcial_1:            number
-  inicios_sesion_plataforma: number
-  uso_tutorias:              number
+  nota_corte_1:     number
+  nota_corte_2:     number
+  nota_corte_final: number
+  nota_total?:      number
+}
+
+export interface CohortPredictionInput {
+  cohort_key:             'first_cohort' | 'second_cohort' | 'third_cohort'
+  nota_parcial:           number
+  promedio_seguimiento:   number
+  porcentaje_asistencia:  number
+}
+
+export interface CohortPredictionOutput {
+  cohort_key:             'first_cohort' | 'second_cohort' | 'third_cohort'
+  cohort_name:            string
+  probabilidad_riesgo:    number
+  porcentaje_riesgo:      number
+  nivel_riesgo:           'ALTO' | 'MEDIO' | 'BAJO'
+  datos_cohorte: {
+    nota_parcial:          number
+    promedio_seguimiento:  number
+    porcentaje_asistencia: number
+  }
+  detalles_modelo: Record<string, number>
 }
 
 export interface RadarData {
@@ -50,13 +70,13 @@ export interface ChatMessage {
 }
 
 export interface ChatRequest {
-  message:  string
-  history?: ChatMessage[]
-  context?: PredictionInput & { nivel_riesgo?: string; probabilidad_riesgo?: number }
+  pregunta: string
+  datos_estudiante: PredictionInput
+  prediccion_actual?: { porcentaje_riesgo?: number; nivel_riesgo?: string }
 }
 
 export interface ChatResponse {
-  response: string
+  respuesta: string
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -89,6 +109,11 @@ export const predictionService = {
   async predict(input: PredictionInput, studentId?: string): Promise<PredictionOutput> {
     const qs = studentId ? `?student_id=${studentId}` : ''
     return postWithAuth<PredictionOutput>(`/predict${qs}`, input)
+  },
+
+  async predictCohort(input: CohortPredictionInput, studentId?: string): Promise<CohortPredictionOutput> {
+    const qs = studentId ? `?student_id=${studentId}` : ''
+    return postWithAuth<CohortPredictionOutput>(`/predict/cohort${qs}`, input)
   },
 
   /**

@@ -28,9 +28,42 @@ export function useGradeCalculation(course: Course, grades: Grade[], students: S
     return t
   }, [gradeMap, courseStudents, course.components])
 
+  const currentCohortGrades = useMemo(() => {
+    const byStudent: Record<string, number | null> = {}
+    const cutOrder = course.cuts ?? []
+
+    const getCutGrade = (studentId: string, cutId: string): number | null => {
+      const cutComponents = course.components.filter(c => c.cutId === cutId)
+      if (cutComponents.length === 0) return null
+
+      let weighted = 0
+      let coveredWeight = 0
+      cutComponents.forEach(comp => {
+        const value = gradeMap[studentId]?.[comp.id]
+        if (value === null || value === undefined) return
+        weighted += value * comp.percentage
+        coveredWeight += comp.percentage
+      })
+
+      if (coveredWeight === 0) return null
+      return Math.round((weighted / coveredWeight) * 10) / 10
+    }
+
+    for (const s of courseStudents) {
+      let current: number | null = null
+      cutOrder.forEach(cut => {
+        const grade = getCutGrade(s.id, cut.id)
+        if (grade !== null) current = grade
+      })
+      byStudent[s.id] = current
+    }
+
+    return byStudent
+  }, [course.cuts, course.components, courseStudents, gradeMap])
+
   const atRiskCount = useMemo(
-    () => courseStudents.filter(s => getRisk(totals[s.id]) === 'high').length,
-    [totals, courseStudents]
+    () => courseStudents.filter(s => getRisk(currentCohortGrades[s.id]) === 'high').length,
+    [currentCohortGrades, courseStudents]
   )
 
   const completionPct = useMemo(() => {
@@ -51,5 +84,5 @@ export function useGradeCalculation(course: Course, grades: Grade[], students: S
     return avgs
   }, [gradeMap, courseStudents, course.components])
 
-  return { courseStudents, gradeMap, totals, atRiskCount, completionPct, componentAvg }
+  return { courseStudents, gradeMap, totals, currentCohortGrades, atRiskCount, completionPct, componentAvg }
 }

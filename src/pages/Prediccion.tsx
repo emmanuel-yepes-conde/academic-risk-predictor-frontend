@@ -42,11 +42,17 @@ ChartJS.register(
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FormData {
-  asistencia:  number
-  seguimiento: number
-  parcial:     number
-  logins:      number
-  tutorias:    boolean
+  nota_corte_1: number
+  nota_corte_2: number
+  nota_corte_3: number
+  nota_total:   number
+}
+
+interface CohortRiskResult {
+  cohort_key: 'first_cohort' | 'second_cohort' | 'third_cohort'
+  cohort_name: string
+  porcentaje_riesgo: number
+  nivel_riesgo: 'BAJO' | 'MEDIO' | 'ALTO'
 }
 
 interface PredictionResult {
@@ -89,6 +95,10 @@ function riskIcon(nivel: string) {
   if (nivel === 'BAJO') return <CheckCircle2 size={16} />
   if (nivel === 'ALTO') return <AlertTriangle size={16} />
   return <Info size={16} />
+}
+
+function computeTotal(n1: number, n2: number, n3: number) {
+  return Number(((n1 * 0.3) + (n2 * 0.3) + (n3 * 0.4)).toFixed(2))
 }
 
 // ─── Animated reveal wrapper ─────────────────────────────────────────────────
@@ -225,8 +235,8 @@ function CompareBar({ labels, studentVals, avgVals }: {
 
 function MathModal({ result, onClose }: { result: PredictionResult; onClose: () => void }) {
   const d = result.detalles_matematicos
-  const featureNames = ['Asistencia', 'Seguimiento', 'Parcial 1', 'Sesiones LMS', 'Tutorías']
-  const varColors = ['#00b4d8', '#16a34a', '#7c3aed', '#d97706', '#0ea5e9']
+  const featureNames = ['Corte 1', 'Corte 2', 'Corte final', 'Total']
+  const varColors = ['#00b4d8', '#16a34a', '#7c3aed', '#d97706']
 
   type NewCoef = { variable: string; coeficiente: number; valor: number; contribucion: number }
   const isNewFormat = d.coeficientes.length > 0 && typeof d.coeficientes[0] === 'object'
@@ -332,7 +342,7 @@ function MathModal({ result, onClose }: { result: PredictionResult; onClose: () 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-usb-muted font-mono">z =</span>
-                <span className="text-xs font-mono text-usb-subtle">β₀ + β₁x₁ + β₂x₂ + β₃x₃ + β₄x₄ + β₅x₅</span>
+                <span className="text-xs font-mono text-usb-subtle">β₀ + β₁x₁ + β₂x₂ + β₃x₃ + β₄x₄</span>
               </div>
               {d.intercepto != null && d.valor_z != null && (
                 <div className="flex items-center gap-2">
@@ -436,18 +446,19 @@ function InlineChatBot({ result, formData }: { result: PredictionResult | null; 
 
     try {
       const data = await predictionService.chat({
-        message: text,
-        context: {
-          promedio_asistencia:       formData.asistencia,
-          promedio_seguimiento:      formData.seguimiento,
-          nota_parcial_1:            formData.parcial,
-          inicios_sesion_plataforma: formData.logins,
-          uso_tutorias:              formData.tutorias ? 1 : 0,
-          nivel_riesgo:              result?.nivel_riesgo,
-          probabilidad_riesgo:       result?.probabilidad_riesgo,
+        pregunta: text,
+        datos_estudiante: {
+          nota_corte_1: formData.nota_corte_1,
+          nota_corte_2: formData.nota_corte_2,
+          nota_corte_final: formData.nota_corte_3,
+          nota_total: formData.nota_total,
         },
+        prediccion_actual: {
+          nivel_riesgo: result?.nivel_riesgo,
+          porcentaje_riesgo: result?.porcentaje_riesgo,
+        }
       })
-      setMessages(prev => [...prev, { role: 'bot', text: data.response }])
+      setMessages(prev => [...prev, { role: 'bot', text: data.respuesta }])
     } catch {
       setMessages(prev => [...prev, { role: 'bot', text: 'Lo siento, no pude conectarme al servidor. Intenta de nuevo.' }])
     } finally {
@@ -575,22 +586,19 @@ function AIAnalysis({ text }: { text: string }) {
 function Recommendations({ form, nivel }: { form: FormData; nivel: string }) {
   const recs: { icon: React.ReactNode; title: string; text: string; good: boolean }[] = []
 
-  if (form.asistencia < 80)
-    recs.push({ icon: <TrendingUp size={14} />, title: 'Mejora tu asistencia', text: `Tienes ${form.asistencia}% de asistencia. Apunta al 90%+ — cada clase perdida acumula riesgo.`, good: false })
+  if (form.nota_total < 3.0)
+    recs.push({ icon: <TrendingDown size={14} />, title: 'Sube tu nota total', text: `Tu total está en ${form.nota_total.toFixed(1)}/5.0. Prioriza recuperación en el corte más bajo.`, good: false })
   else
-    recs.push({ icon: <CheckCircle2 size={14} />, title: '¡Buena asistencia!', text: `Tu ${form.asistencia}% es sólido. Mantén la constancia hasta el final del período.`, good: true })
+    recs.push({ icon: <CheckCircle2 size={14} />, title: 'Buen avance general', text: `Tu total (${form.nota_total.toFixed(1)}/5.0) va en buena dirección.`, good: true })
 
-  if (form.parcial < 3.5)
-    recs.push({ icon: <TrendingDown size={14} />, title: 'Refuerza tu nota parcial', text: `${form.parcial}/5.0 en parciales es un área crítica. Forma un grupo de estudio y usa las tutorías.`, good: false })
+  if (form.nota_corte_1 < 3.0)
+    recs.push({ icon: <MinusIcon size={14} />, title: 'Refuerza fundamentos (Corte 1)', text: `Corte 1 en ${form.nota_corte_1.toFixed(1)}. Recupera temas base para no arrastrarlos.`, good: false })
 
-  if (form.seguimiento < 3.5)
-    recs.push({ icon: <MinusIcon size={14} />, title: 'Participa más en clase', text: `Seguimiento de ${form.seguimiento}/5.0. Entrega tareas a tiempo, participa en foros y debates.`, good: false })
+  if (form.nota_corte_2 < 3.0)
+    recs.push({ icon: <TrendingUp size={14} />, title: 'Mejora desempeño en Corte 2', text: `Corte 2 en ${form.nota_corte_2.toFixed(1)}. Sube participación y práctica guiada.`, good: false })
 
-  if (form.logins < 20)
-    recs.push({ icon: <TrendingUp size={14} />, title: 'Usa más la plataforma', text: `Solo ${form.logins} inicios de sesión. Entra 3–4 veces por semana para revisar materiales y avisos.`, good: false })
-
-  if (!form.tutorias)
-    recs.push({ icon: <Lightbulb size={14} />, title: 'Aprovecha las tutorías', text: 'No estás usando tutorías. Son gratuitas y reducen significativamente el riesgo de reprobación.', good: false })
+  if (form.nota_corte_3 < 3.0)
+    recs.push({ icon: <Lightbulb size={14} />, title: 'Prioriza el cohorte final', text: `Corte final en ${form.nota_corte_3.toFixed(1)}. Es el más crítico por su complejidad y peso.`, good: false })
 
   if (recs.length === 0)
     recs.push({ icon: <CheckCircle2 size={14} />, title: '¡Excelente desempeño!', text: 'Todos tus indicadores son positivos. Mantén el ritmo y sigue así hasta el final del período.', good: true })
@@ -670,7 +678,7 @@ function ResultCards({
           )}
           <p className="text-sm text-usb-muted leading-relaxed">
             {result.nivel_riesgo === 'BAJO' && '¡Vas muy bien! Mantén tu ritmo actual y terminarás el período con éxito.'}
-            {result.nivel_riesgo === 'MEDIO' && 'Zona de riesgo moderado. Pequeñas mejoras en tus indicadores más débiles marcan la diferencia.'}
+            {result.nivel_riesgo === 'MEDIO' && 'Zona de riesgo moderado. Pequeñas mejoras en tus cortes más débiles marcan la diferencia.'}
             {result.nivel_riesgo === 'ALTO' && 'Riesgo elevado. Actúa ahora: habla con tu profesor y usa todos los recursos disponibles.'}
           </p>
         </div>
@@ -679,7 +687,7 @@ function ResultCards({
     comparativa: (
       <div>
         <p className="text-xs text-usb-muted mb-4 leading-relaxed">
-          Compara tus indicadores con el promedio histórico de quienes aprobaron la materia.
+          Compara tus notas por cohorte contra el promedio histórico de quienes aprobaron la materia.
           <span className="text-ar-cyan font-semibold"> Azul</span> = tus datos ·
           <span className="text-emerald-600 font-semibold"> Verde</span> = referencia de éxito.
         </p>
@@ -693,7 +701,7 @@ function ResultCards({
     radar: (
       <div>
         <p className="text-xs text-usb-muted mb-4 leading-relaxed">
-          Radar de tus 5 dimensiones académicas. Cuanto más cerca de la línea verde, mejor posicionado estás para aprobar.
+          Radar de tus 4 variables del curso. Cuanto más cerca de la línea verde, mejor posicionado estás para aprobar.
         </p>
         <div className="max-w-sm mx-auto">
           <RadarChart datos={result.datos_radar} />
@@ -798,6 +806,31 @@ function ResultCards({
         </button>
       </div>
     </motion.div>
+  )
+}
+
+function CohortRiskSummary({ risks }: { risks: CohortRiskResult[] }) {
+  if (risks.length === 0) return null
+  return (
+    <div className="bg-white rounded-2xl shadow-card border border-usb-border p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart2 size={14} className="text-ar-cyan" />
+        <h3 className="text-sm font-bold text-usb-text">Riesgo por cohorte</h3>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {risks.map((risk) => (
+          <div key={risk.cohort_key} className="rounded-xl border border-usb-border bg-usb-canvas p-3">
+            <p className="text-[0.7rem] font-semibold text-usb-faint uppercase tracking-wide">{risk.cohort_name}</p>
+            <p className="text-xl font-black mt-1" style={{ color: riskColor(risk.nivel_riesgo) }}>
+              {risk.porcentaje_riesgo.toFixed(0)}%
+            </p>
+            <p className={`inline-flex mt-1 text-[0.65rem] font-bold px-2 py-0.5 rounded-full border ${riskBgClass(risk.nivel_riesgo)}`}>
+              {risk.nivel_riesgo}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -972,27 +1005,24 @@ function GradesByCorte({ grades, compact = false }: { grades: FormData; compact?
       </div>
 
       <div className={`grid gap-2.5 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'}`}>
-        {/* ── Corte 1 — has real data ── */}
         <CorteSection number={1} hasData accentColor="#059669">
-          <GradeCard label="Parcial"      value={grades.parcial.toFixed(2)}     unit="/5" color="#7c3aed" />
-          <GradeCard label="Asistencia"   value={grades.asistencia.toFixed(1)}  unit="%" color="var(--green-accent)" />
-          <GradeCard label="Seguimiento"  value={grades.seguimiento.toFixed(2)} unit="/5" color="#00b4d8" />
-          <GradeCard label="Sesiones LMS" value={grades.logins}                 color="#d97706" />
-          <div className={`flex items-center justify-between py-2.5 px-3 rounded-xl border bg-white ${
-            grades.tutorias ? 'border-emerald-200' : 'border-usb-border'
-          }`}>
-            <span className="text-xs font-semibold text-usb-subtle">Tutorías</span>
-            <span className={`text-sm font-black ${grades.tutorias ? 'text-emerald-600' : 'text-usb-muted'}`}>
-              {grades.tutorias ? '✅ Sí' : '❌ No'}
-            </span>
-          </div>
+          <GradeCard label="Nota cohorte" value={grades.nota_corte_1.toFixed(2)} unit="/5" color="#059669" />
         </CorteSection>
 
-        {/* ── Corte 2 — pending ── */}
-        <CorteSection number={2} hasData={false} accentColor="#64748b" />
+        <CorteSection number={2} hasData accentColor="#0369a1">
+          <GradeCard label="Nota cohorte" value={grades.nota_corte_2.toFixed(2)} unit="/5" color="#0369a1" />
+        </CorteSection>
 
-        {/* ── Corte 3 — pending ── */}
-        <CorteSection number={3} hasData={false} accentColor="#64748b" />
+        <CorteSection number={3} hasData accentColor="#7c3aed">
+          <GradeCard label="Nota cohorte" value={grades.nota_corte_3.toFixed(2)} unit="/5" color="#7c3aed" />
+        </CorteSection>
+      </div>
+
+      <div className="mt-2.5">
+        <div className="flex items-center justify-between py-2.5 px-3 rounded-xl border border-usb-border bg-white">
+          <span className="text-xs font-semibold text-usb-subtle">Nota total</span>
+          <span className="text-sm font-black text-usb-text">{grades.nota_total.toFixed(2)}/5</span>
+        </div>
       </div>
     </div>
   )
@@ -1038,39 +1068,59 @@ export default function Prediccion() {
   // ── State ──────────────────────────────────────────────────────────────────
   const [selectedCourseId, setSelectedCourseId] = useState<string>(urlCourseId)
   const [result, setResult]     = useState<PredictionResult | null>(null)
+  const [cohortRisks, setCohortRisks] = useState<CohortRiskResult[]>([])
   const [predLoading, setPredLoading] = useState(false)
   const [error, setError]       = useState('')
   const [showMath, setShowMath] = useState(false)
+  const [dbGrades, setDbGrades] = useState<FormData | null>(null)
 
-  // Manual fallback inputs (used only when DB grades are null)
-  const [asistencia,  setAsistencia]  = useState(85)
-  const [seguimiento, setSeguimiento] = useState(3.5)
-  const [parcial,     setParcial]     = useState(3.2)
-  const [logins,      setLogins]      = useState(42)
-  const [tutorias,    setTutorias]    = useState(true)
+  // Manual fallback inputs (when DB grades are not available yet)
+  const [notaCorte1, setNotaCorte1] = useState(3.2)
+  const [notaCorte2, setNotaCorte2] = useState(3.2)
+  const [notaCorte3, setNotaCorte3] = useState(3.2)
 
   const resultsRef = useRef<HTMLDivElement>(null)
 
   const selectedCourse     = enrolledCourses.find(c => c.id === selectedCourseId) ?? null
   const selectedEnrollment = selectedCourseId ? enrollmentMap.get(selectedCourseId) ?? null : null
 
-  // Detect if we have complete grades from DB for the selected course
-  const dbGrades = selectedEnrollment && (
-    selectedEnrollment.asistencia      != null &&
-    selectedEnrollment.seguimiento     != null &&
-    selectedEnrollment.nota_parcial_1  != null &&
-    selectedEnrollment.logins          != null &&
-    selectedEnrollment.uso_tutorias    != null
-  ) ? {
-    asistencia:  Number(selectedEnrollment.asistencia),
-    seguimiento: Number(selectedEnrollment.seguimiento),
-    parcial:     Number(selectedEnrollment.nota_parcial_1),
-    logins:      Number(selectedEnrollment.logins),
-    tutorias:    Boolean(selectedEnrollment.uso_tutorias),
-  } : null
+  const finalForm: FormData = dbGrades ?? {
+    nota_corte_1: notaCorte1,
+    nota_corte_2: notaCorte2,
+    nota_corte_3: notaCorte3,
+    nota_total: computeTotal(notaCorte1, notaCorte2, notaCorte3),
+  }
 
-  // Resolved form values: DB grades take priority over manual sliders
-  const finalForm: FormData = dbGrades ?? { asistencia, seguimiento, parcial, logins, tutorias }
+  useEffect(() => {
+    if (!selectedEnrollment?.id) {
+      setDbGrades(null)
+      return
+    }
+    void (async () => {
+      try {
+        const grades = await enrollmentService.getGrades(selectedEnrollment.id)
+        const c1 = grades.first_cohort_grade
+        const c2 = grades.second_cohort_grade
+        const c3 = grades.third_cohort_grade
+        const total = grades.final_grade
+
+        if (c1 != null && c2 != null && c3 != null) {
+          const computedTotal = total ?? computeTotal(c1, c2, c3)
+          setDbGrades({
+            nota_corte_1: Number(c1),
+            nota_corte_2: Number(c2),
+            nota_corte_3: Number(c3),
+            nota_total: Number(computedTotal),
+          })
+        } else {
+          setDbGrades(null)
+        }
+
+      } catch {
+        setDbGrades(null)
+      }
+    })()
+  }, [selectedEnrollment?.id])
 
   // Pre-select from URL param or first course
   useEffect(() => {
@@ -1087,17 +1137,37 @@ export default function Prediccion() {
     setPredLoading(true)
     setError('')
     setResult(null)
+    setCohortRisks([])
 
     try {
       const data = await predictionService.predict({
-        promedio_asistencia:       form.asistencia,
-        promedio_seguimiento:      form.seguimiento,
-        nota_parcial_1:            form.parcial,
-        inicios_sesion_plataforma: form.logins,
-        uso_tutorias:              form.tutorias ? 1 : 0,
+        nota_corte_1: form.nota_corte_1,
+        nota_corte_2: form.nota_corte_2,
+        nota_corte_final: form.nota_corte_3,
+        nota_total: form.nota_total,
       }, user?.studentId)
 
       setResult(data as unknown as PredictionResult)
+
+      if (selectedEnrollment?.id) {
+        const cohortKeys: Array<'first_cohort' | 'second_cohort' | 'third_cohort'> = [
+          'first_cohort',
+          'second_cohort',
+          'third_cohort',
+        ]
+        const risks = await Promise.all(
+          cohortKeys.map(async (cohortKey) => {
+            const r = await enrollmentService.getCohortRisk(selectedEnrollment.id, cohortKey)
+            return {
+              cohort_key: r.cohort_key,
+              cohort_name: r.cohort_name,
+              porcentaje_riesgo: r.porcentaje_riesgo,
+              nivel_riesgo: r.nivel_riesgo,
+            } as CohortRiskResult
+          }),
+        )
+        setCohortRisks(risks)
+      }
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
 
       // Notify professor for HIGH risk
@@ -1131,7 +1201,7 @@ export default function Prediccion() {
     } finally {
       setPredLoading(false)
     }
-  }, [user])
+  }, [selectedEnrollment?.id, user])
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1139,7 +1209,7 @@ export default function Prediccion() {
     await runPrediction(finalForm, selectedCourse)
   }, [finalForm, selectedCourse, runPrediction])
 
-  const reset = () => { setResult(null); setError('') }
+  const reset = () => { setResult(null); setError(''); setCohortRisks([]) }
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -1264,6 +1334,7 @@ export default function Prediccion() {
           {/* Results — reuse the same cards as explorer mode */}
           <div ref={resultsRef} className="space-y-4">
             <ResultCards result={result} selectedCourse={selectedCourse ?? null} finalForm={finalForm} />
+            <CohortRiskSummary risks={cohortRisks} />
           </div>
         </main>
 
@@ -1328,7 +1399,7 @@ export default function Prediccion() {
                   <form onSubmit={e => void handleSubmit(e)}>
                     <h2 className="font-bold text-usb-text mb-3 flex items-center gap-2 text-sm">
                       <span className="w-6 h-6 rounded-full bg-ar-cyan/20 text-ar-cyan flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-                      Indicadores académicos
+                      Notas por cohorte
                     </h2>
 
                     {dbGrades ? (
@@ -1343,22 +1414,16 @@ export default function Prediccion() {
                     ) : (
                       <>
                         <p className="text-[0.68rem] text-usb-faint mb-3 flex items-center gap-1">
-                          <Info size={10} /> Sin notas en el sistema. Introduce valores manualmente.
+                          <Info size={10} /> Sin notas consolidadas en el sistema. Introduce valores manualmente.
                         </p>
-                        <Slider label="Asistencia" value={asistencia} onChange={setAsistencia} min={0} max={100} step={1} unit="%" color="var(--green-accent)" />
-                        <Slider label="Seguimiento" value={seguimiento} onChange={setSeguimiento} min={0} max={5} step={0.1} unit="/5" color="#00b4d8" />
-                        <Slider label="Nota Parcial 1" value={parcial} onChange={setParcial} min={0} max={5} step={0.1} unit="/5" color="#7c3aed" />
-                        <Slider label="Sesiones LMS" value={logins} onChange={setLogins} min={0} max={100} step={1} unit="" color="#d97706" />
-                        <div className="mb-5">
-                          <label className="text-sm font-semibold text-usb-subtle mb-2 block">Uso de tutorías</label>
-                          <button type="button" onClick={() => setTutorias(t => !t)}
-                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${tutorias ? 'border-ar-cyan bg-ar-cyan/5 text-ar-navy' : 'border-usb-border bg-usb-canvas text-usb-muted'}`}
-                          >
-                            <span>{tutorias ? '✅ Sí, uso tutorías' : '❌ No uso tutorías'}</span>
-                            <div className={`w-10 h-5 rounded-full relative transition-colors ${tutorias ? 'bg-ar-cyan' : 'bg-usb-border'}`}>
-                              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${tutorias ? 'left-5' : 'left-0.5'}`} />
-                            </div>
-                          </button>
+                        <Slider label="Nota Corte 1" value={notaCorte1} onChange={setNotaCorte1} min={0} max={5} step={0.1} unit="/5" color="#059669" />
+                        <Slider label="Nota Corte 2" value={notaCorte2} onChange={setNotaCorte2} min={0} max={5} step={0.1} unit="/5" color="#0369a1" />
+                        <Slider label="Nota Corte Final" value={notaCorte3} onChange={setNotaCorte3} min={0} max={5} step={0.1} unit="/5" color="#7c3aed" />
+                        <div className="mb-5 flex items-center justify-between px-4 py-3 rounded-xl border border-usb-border bg-usb-canvas">
+                          <span className="text-sm font-semibold text-usb-subtle">Nota total calculada</span>
+                          <span className="text-sm font-black text-usb-text tabular-nums">
+                            {computeTotal(notaCorte1, notaCorte2, notaCorte3).toFixed(2)}/5
+                          </span>
                         </div>
                         <button type="submit" disabled={predLoading}
                           className="w-full flex items-center justify-center gap-2 bg-ar-cyan hover:bg-ar-cyan-dark disabled:opacity-60 text-white font-bold py-3.5 rounded-full transition-all shadow-glow hover:shadow-lg"
@@ -1406,7 +1471,7 @@ export default function Prediccion() {
                   <div className="w-16 h-16 rounded-2xl bg-usb-canvas border border-usb-border flex items-center justify-center mb-4">
                     <BarChart2 size={28} className="text-usb-faint" />
                   </div>
-                  <p className="font-bold text-usb-text mb-1">Ajusta tus indicadores</p>
+                  <p className="font-bold text-usb-text mb-1">Ajusta tus notas por cohorte</p>
                   <p className="text-usb-muted text-sm">Mueve los controles y presiona "Calcular mi riesgo"</p>
                 </div>
               )}
@@ -1427,7 +1492,10 @@ export default function Prediccion() {
             )}
 
             {/* Results */}
-            <ResultCards result={result} selectedCourse={selectedCourse} finalForm={finalForm} />
+            <div className="space-y-4">
+              <ResultCards result={result} selectedCourse={selectedCourse} finalForm={finalForm} />
+              <CohortRiskSummary risks={cohortRisks} />
+            </div>
           </div>
         </div>
         </main>
@@ -1461,14 +1529,6 @@ export default function Prediccion() {
         )}
       </AnimatePresence>
 
-      <footer
-        className="py-4 text-center mt-8"
-        style={{ background: 'var(--green-deep)', borderTop: '1px solid rgba(255,255,255,0.14)' }}
-      >
-        <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
-          Academic Risk · Predictor Académico IA · {new Date().getFullYear()}
-        </p>
-      </footer>
     </div>
   )
 }

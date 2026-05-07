@@ -46,7 +46,7 @@ export default function SubjectCard({ course, studentCount, completionPct, atRis
           {atRiskCount > 0 && (
             <div className="flex items-center gap-1 text-xs font-medium text-risk-high ml-auto">
               <AlertTriangle size={12} />
-              <span>{atRiskCount} en riesgo</span>
+              <span>{atRiskCount} en riesgo actual</span>
             </div>
           )}
         </div>

@@ -354,9 +354,6 @@ export default function EstadisticasProfesor() {
         )}
       </main>
 
-      <footer className="border-t border-white/10 py-4 text-center" style={{ background: 'var(--green-deep)' }}>
-        <p className="text-white/30 text-xs">Academic Risk · Estadísticas del Docente</p>
-      </footer>
     </div>
   )
 }
