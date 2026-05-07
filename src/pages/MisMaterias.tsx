@@ -5,7 +5,7 @@
  *  1. GET /students/{id}/enrollments → all statuses
  *  2. GET /courses/{id} for each enrollment → course details
  *  3. GET /programs/{id} → program name
- *  4. GET /programs/{id}/courses → full pensum
+ *  4. GET /programs/{id}/subjects → full pensum
  *  5. GET /students/{id}/profile → semester number
  */
 
@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext'
 import { enrollmentService, type BackendEnrollment } from '../services/enrollmentService'
 import { courseService, type BackendCourse } from '../services/courseService'
 import { programService, type BackendProgram } from '../services/programService'
+import { subjectService, type BackendSubject } from '../services/subjectService'
 import { api, ApiError } from '../services/api'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ interface ProgramGroup {
   program:          BackendProgram | null
   activeCourses:    EnrolledCourse[]
   completedCourses: EnrolledCourse[]
-  pensumCourses:    BackendCourse[]
+  pensumSubjects:   BackendSubject[]
   activeCredits:    number
   completedCredits: number
   totalCredits:     number
@@ -186,26 +187,26 @@ export default function MisMaterias() {
       const groupPromises = Object.entries(byProgram).map(
         async ([programId, courses]): Promise<ProgramGroup> => {
           let program: BackendProgram | null = null
-          let pensumCourses: BackendCourse[] = []
+          let pensumSubjects: BackendSubject[] = []
 
           if (programId !== 'sin-programa') {
             const [progRes, pensumRes] = await Promise.allSettled([
               programService.getProgram(programId),
-              courseService.listByProgram(programId),
+              subjectService.listByProgram(programId),
             ])
             if (progRes.status === 'fulfilled') program = progRes.value
-            if (pensumRes.status === 'fulfilled') pensumCourses = pensumRes.value
+            if (pensumRes.status === 'fulfilled') pensumSubjects = pensumRes.value
           }
 
           const activeCourses    = courses.filter(c => c.enrollmentStatus === 'ACTIVE')
           const completedCourses = courses.filter(c => c.enrollmentStatus === 'COMPLETED')
           const activeCredits    = activeCourses.reduce((s, c) => s + c.course.credits, 0)
           const completedCredits = completedCourses.reduce((s, c) => s + c.course.credits, 0)
-          const totalCredits     = pensumCourses.length > 0
-            ? pensumCourses.reduce((s, c) => s + c.credits, 0)
+          const totalCredits     = pensumSubjects.length > 0
+            ? pensumSubjects.reduce((s, subj) => s + subj.credits, 0)
             : activeCredits + completedCredits
 
-          return { programId, program, activeCourses, completedCourses, pensumCourses, activeCredits, completedCredits, totalCredits }
+          return { programId, program, activeCourses, completedCourses, pensumSubjects, activeCredits, completedCredits, totalCredits }
         },
       )
 
@@ -228,7 +229,7 @@ export default function MisMaterias() {
   useEffect(() => { void fetchData() }, [fetchData])
 
   // ── Derived totals ──────────────────────────────────────────────────────────
-  const totalPensumCourses  = groups.reduce((s, g) => s + g.pensumCourses.length, 0)
+  const totalPensumCourses  = groups.reduce((s, g) => s + g.pensumSubjects.length, 0)
   const totalActive         = groups.reduce((s, g) => s + g.activeCourses.length, 0)
   const totalCompleted      = groups.reduce((s, g) => s + g.completedCourses.length, 0)
   const totalActiveCredits  = groups.reduce((s, g) => s + g.activeCredits, 0)
@@ -519,14 +520,6 @@ export default function MisMaterias() {
         )}
       </main>
 
-      <footer
-        className="py-4 text-center"
-        style={{ background: 'var(--green-deep)', borderTop: '1px solid rgba(255,255,255,0.14)' }}
-      >
-        <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
-          Academic Risk · Mi Progreso · {new Date().getFullYear()}
-        </p>
-      </footer>
     </div>
   )
 }

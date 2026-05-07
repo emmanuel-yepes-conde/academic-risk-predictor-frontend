@@ -1,6 +1,6 @@
 /**
- * Course service.
- * Wraps /api/v1/programs/{id}/courses and /api/v1/professors/{id}/courses endpoints.
+ * Course service — secciones/grupos de una materia.
+ * Wraps /api/v1/courses and /api/v1/programs/{id}/courses.
  */
 
 import { api } from './api'
@@ -10,95 +10,105 @@ import type { PaginatedResponse } from './userService'
 // ─── Backend DTOs ─────────────────────────────────────────────────────────────
 
 export interface BackendCourse {
+  id:                 string
+  subject_id:         string
+  section:            string
+  academic_period:    string
+  professor_id?:      string | null
+  status:             'ACTIVE' | 'INACTIVE'
+  created_at:         string
+  // Denormalizados desde Subject:
+  code:               string
+  name:               string
+  credits:            number
+  program_id:         string
+  evaluation_config?: Record<string, unknown> | null
+}
+
+export interface EvaluationConfigActivityInput {
+  id:         string
+  name:       string
+  percentage: number
+}
+
+export interface EvaluationConfigCutInput {
   id:              string
-  code:            string
   name:            string
-  credits:         number
-  academic_period: string
-  program_id:      string
-  professor_id?:   string | null
-  status:          'ACTIVE' | 'INACTIVE'
-  created_at:      string
+  percentage:      number
+  evaluation_date?: string | null
+  activities:      EvaluationConfigActivityInput[]
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export interface CourseCreateInput {
-  code:            string
-  name:            string
-  credits:         number
+  subject_id:      string
+  section?:        string
   academic_period: string
-  program_id:      string
+  professor_id?:   string
 }
 
 export const courseService = {
-  /** Create a new course. */
+  /** Crea una sección de una materia. */
   async create(body: CourseCreateInput): Promise<BackendCourse> {
     return api.post<BackendCourse>('/courses', body)
   },
 
-  /**
-   * List courses belonging to a program.
-   */
+  /** Lista secciones de un programa. */
   async listByProgram(programId: string): Promise<BackendCourse[]> {
     return api.get<BackendCourse[]>(`/programs/${programId}/courses`)
   },
 
-  /**
-   * List courses assigned to a specific professor.
-   */
+  /** Lista secciones asignadas a un profesor. */
   async listByProfessor(professorId: string): Promise<BackendCourse[]> {
     return api.get<BackendCourse[]>(`/professors/${professorId}/courses`)
   },
 
-  /**
-   * List courses within a specific university program.
-   */
-  async listByUniversityAndProgram(
-    universityId: string,
-    programId: string,
-  ): Promise<BackendCourse[]> {
-    return api.get<BackendCourse[]>(
-      `/universities/${universityId}/programs/${programId}/courses`,
-    )
-  },
-
-  /**
-   * Get the professor assigned to a course.
-   */
+  /** Obtiene el profesor asignado a una sección. */
   async getCourseProf(courseId: string): Promise<BackendUser> {
     return api.get<BackendUser>(`/courses/${courseId}/professor`)
   },
 
-  /**
-   * List students enrolled in a course (professor must be provided for auth check).
-   */
+  /** Lista estudiantes inscritos en una sección. */
   async listCourseStudents(courseId: string, professorId: string): Promise<BackendUser[]> {
     return api.get<BackendUser[]>(
       `/courses/${courseId}/students?professor_id=${professorId}`,
     )
   },
 
-  /**
-   * Get a single course by ID.
-   */
+  /** Obtiene una sección por ID. */
   async getById(courseId: string): Promise<BackendCourse> {
     return api.get<BackendCourse>(`/courses/${courseId}`)
   },
 
-  /**
-   * List courses with pagination (accessible by any authenticated user).
-   */
+  /** Lista secciones con paginación. */
   async listAll(params: {
-    status?: 'ACTIVE' | 'INACTIVE'
-    skip?:   number
-    limit?:  number
+    status?:     'ACTIVE' | 'INACTIVE'
+    subject_id?: string
+    skip?:       number
+    limit?:      number
   } = {}): Promise<PaginatedResponse<BackendCourse>> {
     const qs = new URLSearchParams()
-    if (params.status) qs.set('status', params.status)
+    if (params.status)     qs.set('status',     params.status)
+    if (params.subject_id) qs.set('subject_id', params.subject_id)
     if (params.skip  != null) qs.set('skip',  String(params.skip))
     if (params.limit != null) qs.set('limit', String(params.limit))
     const query = qs.toString() ? `?${qs}` : ''
     return api.get<PaginatedResponse<BackendCourse>>(`/courses${query}`)
+  },
+
+  /** Asigna o reemplaza el profesor de una sección. */
+  async assignProfessor(courseId: string, professorId: string): Promise<{ id: string; professor_id: string; course_id: string }> {
+    return api.post(`/courses/${courseId}/professor`, { professor_id: professorId })
+  },
+
+  /** Cambia el estado de una sección (ACTIVE / INACTIVE). */
+  async updateStatus(courseId: string, status: 'ACTIVE' | 'INACTIVE'): Promise<BackendCourse> {
+    return api.patch<BackendCourse>(`/courses/${courseId}/status`, { status })
+  },
+
+  /** Guarda la distribución de notas de la sección. */
+  async saveEvaluationConfig(courseId: string, cuts: EvaluationConfigCutInput[]): Promise<BackendCourse> {
+    return api.patch<BackendCourse>(`/courses/${courseId}/evaluation-config`, { cuts })
   },
 }

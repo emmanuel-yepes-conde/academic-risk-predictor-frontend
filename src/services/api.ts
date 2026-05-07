@@ -104,8 +104,9 @@ async function request<T>(
 ): Promise<T> {
   const { skipAuth = false, _retried = false, ...init } = options
 
+  const isFormData = init.body instanceof FormData
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(init.headers as Record<string, string> ?? {}),
   }
 
@@ -152,9 +153,15 @@ export const api = {
   post:   <T>(path: string, body: unknown, opts?: RequestOptions) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body), ...opts }),
 
+  put:    <T>(path: string, body: unknown, opts?: RequestOptions) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(body), ...opts }),
+
   patch:  <T>(path: string, body: unknown, opts?: RequestOptions) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body), ...opts }),
 
   delete: <T>(path: string, opts?: RequestOptions) =>
     request<T>(path, { method: 'DELETE', ...opts }),
+
+  postForm: <T>(path: string, body: FormData, opts?: RequestOptions) =>
+    request<T>(path, { method: 'POST', body, ...opts }),
 }

@@ -205,9 +205,6 @@ export default function MisNotas() {
         )}
       </main>
 
-      <footer className="bg-ar-navy border-t border-white/10 py-4 text-center">
-        <p className="text-white/30 text-xs">Academic Risk · Mis Notas · Corte 1 · 2024-I</p>
-      </footer>
     </div>
   )
 }

@@ -42,7 +42,7 @@ export interface BackendCampus {
   created_at:    string
 }
 
-// ─── Create DTOs ─────────────────────────────────────────────────────────────
+// ─── Create / Update DTOs ─────────────────────────────────────────────────────
 
 export interface ProgramCreateInput {
   institution:   string
@@ -51,6 +51,15 @@ export interface ProgramCreateInput {
   program_name:  string
   location:      string
   snies_code:    number
+}
+
+export interface ProgramUpdateInput {
+  institution?:  string
+  degree_type?:  string
+  program_code?: string
+  program_name?: string
+  location?:     string
+  snies_code?:   number
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -64,6 +73,11 @@ export const programService = {
   /** Create a new program (requires ADMIN role). */
   async createProgram(body: ProgramCreateInput): Promise<BackendProgram> {
     return api.post<BackendProgram>('/programs', body)
+  },
+
+  /** Update an existing program (requires ADMIN role). */
+  async updateProgram(programId: string, body: ProgramUpdateInput): Promise<BackendProgram> {
+    return api.patch<BackendProgram>(`/programs/${programId}`, body)
   },
 
   /** List all programs (global, no university filter). */

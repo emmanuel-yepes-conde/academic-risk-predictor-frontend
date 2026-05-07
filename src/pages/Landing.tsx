@@ -114,8 +114,8 @@ function Blob({ className, delay = 0 }: { className: string; delay?: number }) {
 
 const TOUR_STEPS: Step[] = [
   { target: '#tour-nav',      title: '🧭 Tu menú de navegación', content: 'Tienes "Inicio" (esta página) y "Mi Progreso" para ver tus materias y predicción de riesgo.', placement: 'bottom' },
-  { target: '#tour-variables', title: '📊 Variables del predictor', content: 'El modelo analiza 5 variables: asistencia, seguimiento académico, primer parcial, uso de plataforma y tutorías.', placement: 'top' },
-  { target: '#tour-hero-cta', title: '🚀 ¡Inicia tu análisis!', content: 'Al hacer clic, la IA evalúa tus 5 variables en menos de 1 segundo y genera un reporte personalizado.', placement: 'top' },
+  { target: '#tour-variables', title: '📊 Variables del predictor', content: 'El modelo analiza 4 variables: nota corte 1, corte 2, corte final y nota total.', placement: 'top' },
+  { target: '#tour-hero-cta', title: '🚀 ¡Inicia tu análisis!', content: 'Al hacer clic, la IA evalúa tus notas por cohorte en menos de 1 segundo y genera un reporte personalizado.', placement: 'top' },
 ]
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -231,7 +231,7 @@ export default function Landing() {
               transition={{ duration: 0.35, delay: 0.18 }}
               className="text-white/50 text-lg mb-9 max-w-lg leading-relaxed"
             >
-              Analiza tus 5 variables académicas y descubre tu probabilidad de éxito
+              Analiza tus notas por cohorte y descubre tu probabilidad de éxito
               con inteligencia artificial. Recibe consejos personalizados al instante.
             </motion.p>
 
@@ -383,8 +383,8 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { step: '01', icon: ClipboardList, title: 'Ingresa tus datos',  desc: 'Asistencia, seguimiento, notas y uso de plataforma.', accent: 'var(--green-accent)' },
-              { step: '02', icon: Brain,          title: 'Análisis IA',        desc: 'El modelo procesa tus 5 variables en menos de 1 segundo.', accent: 'var(--green-brand)' },
+              { step: '01', icon: ClipboardList, title: 'Ingresa tus datos',  desc: 'Notas de corte 1, corte 2 y corte final.', accent: 'var(--green-accent)' },
+              { step: '02', icon: Brain,          title: 'Análisis IA',        desc: 'El modelo procesa tus 4 variables en menos de 1 segundo.', accent: 'var(--green-brand)' },
               { step: '03', icon: Lightbulb,      title: 'Recibe tu reporte', desc: 'Gráficas, nivel de riesgo y consejos personalizados.', accent: 'var(--gold)' },
             ].map((p, i) => (
               <div key={p.step} data-anim="process-step" className="relative text-center">
@@ -436,7 +436,7 @@ export default function Landing() {
               { icon: ClipboardList, label: 'Nivel de Seguimiento',    desc: 'Calificación promedio en seguimientos',      bg: 'rgba(0,98,65,0.07)',   color: 'var(--green-brand)'  },
               { icon: BookOpen,      label: 'Nota del Primer Parcial', desc: 'Tu calificación en el primer examen',        bg: 'var(--gold-lightest)', color: 'var(--gold)'          },
               { icon: Monitor,       label: 'Uso de Plataforma',       desc: 'Inicios de sesión en el sistema LMS',        bg: 'rgba(0,117,74,0.08)',  color: 'var(--green-accent)' },
-              { icon: CheckCircle,   label: 'Asistencia a Tutorías',   desc: '¿Usas el servicio de tutorías?',             bg: 'rgba(0,98,65,0.07)',   color: 'var(--green-brand)'  },
+              { icon: CheckCircle,   label: 'Nota total',              desc: 'Síntesis ponderada del rendimiento del curso.', bg: 'rgba(0,98,65,0.07)',   color: 'var(--green-brand)'  },
               { icon: Layers,        label: 'Modelo de Regresión',     desc: 'Logistic Regression · 99k registros',        bg: 'rgba(0,0,0,0.04)',     color: 'var(--text-muted)'   },
             ].map(v => (
               <div key={v.label} data-anim="var-card">
@@ -497,23 +497,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ background: 'var(--green-deep)', borderTop: '1px solid rgba(255,255,255,0.14)' }}
-              className="py-8">
-        <div className="max-w-5xl mx-auto px-5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(212,233,226,0.14)', border: '1px solid rgba(212,233,226,0.25)' }}
-            >
-              <BarChart2 size={13} style={{ color: 'var(--green-light)' }} />
-            </div>
-            <span className="text-white font-bold text-sm" style={{ letterSpacing: '-0.01em' }}>Academic Risk</span>
-          </div>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>Plataforma académica · Período 2024-I</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>Powered by Logistic Regression AI</p>
-        </div>
-      </footer>
     </div>
   )
 }

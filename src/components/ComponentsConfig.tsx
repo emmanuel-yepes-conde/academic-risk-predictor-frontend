@@ -41,15 +41,38 @@ interface Props {
   onChange: (components: GradeComponent[]) => void
 }
 
+function normName(name: string): string {
+  return name.trim().toLowerCase()
+}
+
 export default function ComponentsConfig({ cuts, components, onChangeCuts, onChange }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(cuts.map(c => c.id)))
 
   const cutsTotal = cuts.reduce((s, c) => s + c.percentage, 0)
   const cutsValid = cutsTotal === 100
+  const duplicateCompIds = new Set<string>()
+  let hasEmptyNames = false
+  const names = new Map<string, string[]>()
+  components.forEach(comp => {
+    const normalized = normName(comp.name)
+    if (!normalized) {
+      hasEmptyNames = true
+      return
+    }
+    const ids = names.get(normalized) ?? []
+    ids.push(comp.id)
+    names.set(normalized, ids)
+  })
+  names.forEach(ids => {
+    if (ids.length > 1) ids.forEach(id => duplicateCompIds.add(id))
+  })
+
+  const hasDuplicateNames = duplicateCompIds.size > 0
+  const namesValid = !hasEmptyNames && !hasDuplicateNames
   const allValid  = cutsValid && cuts.every(cut => {
     const sum = components.filter(c => c.cutId === cut.id).reduce((s, c) => s + c.percentage, 0)
     return sum === cut.percentage
-  })
+  }) && namesValid
 
   const toggleCut = (id: string) =>
     setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -70,7 +93,7 @@ export default function ComponentsConfig({ cuts, components, onChangeCuts, onCha
     onChange([...components, {
       id:         `comp-${Date.now()}`,
       cutId,
-      name:       'Nueva actividad',
+      name:       '',
       percentage: Math.max(0, cut.percentage - cutTotal),
     }])
   }
@@ -88,6 +111,10 @@ export default function ComponentsConfig({ cuts, components, onChangeCuts, onCha
           ? 'Distribución válida — todos los cortes están completos'
           : !cutsValid
             ? `Los cortes suman ${cutsTotal}% — deben sumar 100%`
+            : hasDuplicateNames
+              ? 'No se permiten actividades con el mismo nombre'
+              : hasEmptyNames
+                ? 'Todas las actividades deben tener nombre'
             : 'Completa la distribución interna de cada corte'}
       </div>
 
@@ -206,12 +233,25 @@ export default function ComponentsConfig({ cuts, components, onChangeCuts, onCha
                           className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border border-usb-border"
                         >
                           <div className="w-1.5 h-6 rounded-full flex-shrink-0" style={{ background: 'var(--green-accent, #00754A)', opacity: 0.4 }} />
-                          <input
-                            type="text"
-                            value={comp.name}
-                            onChange={e => updateCompName(comp.id, e.target.value)}
-                            className="flex-1 bg-transparent text-[0.85rem] font-medium text-usb-subtle focus:outline-none"
-                          />
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              value={comp.name}
+                              onChange={e => updateCompName(comp.id, e.target.value)}
+                              placeholder="Nombre de la actividad"
+                              className={`w-full bg-transparent text-[0.85rem] font-medium focus:outline-none ${
+                                duplicateCompIds.has(comp.id) || comp.name.trim().length === 0
+                                  ? 'text-rose-600'
+                                  : 'text-usb-subtle'
+                              }`}
+                            />
+                            {comp.name.trim().length === 0 && (
+                              <p className="text-[0.65rem] text-rose-500 mt-0.5">Nombre requerido</p>
+                            )}
+                            {comp.name.trim().length > 0 && duplicateCompIds.has(comp.id) && (
+                              <p className="text-[0.65rem] text-rose-500 mt-0.5">Nombre repetido</p>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5">
                             <PctInput
                               value={comp.percentage}
