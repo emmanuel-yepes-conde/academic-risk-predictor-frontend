@@ -32,13 +32,13 @@ npm install
 
 ## 3. Configurar variable de entorno
 
-Crea un archivo `.env` en la raíz del proyecto:
+Crea un archivo `.env.development` en la raíz del proyecto:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8001/api/v1
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
-> Si el backend corre en otro host o puerto, ajusta esta URL.
+En desarrollo la app usa `http://localhost:8000` como backend local. En Vercel/despliegue configura `VITE_API_BASE_URL` con la URL raíz del backend de Azure, sin `/api/v1`.
 
 ---
 
@@ -157,11 +157,12 @@ academic-risk-predictor-frontend/
 ## Solución de problemas frecuentes
 
 ### `VITE_API_BASE_URL` no definida
-- Crear el archivo `.env` en la raíz con `VITE_API_BASE_URL=http://localhost:8001/api/v1`
+- En desarrollo no es obligatoria: el frontend usa `http://localhost:8000`.
+- En Vercel, configurar `VITE_API_BASE_URL=https://<dns-de-azure>` sin `/api/v1`.
 - Reiniciar `npm run dev` después de crear el archivo
 
 ### Error de CORS
-- Verificar que el backend esté corriendo en el puerto 8001
+- Verificar que el backend esté corriendo en `http://localhost:8000`
 - El backend acepta `*` por defecto en CORS
 
 ### La tabla de usuarios no carga (Admin)
