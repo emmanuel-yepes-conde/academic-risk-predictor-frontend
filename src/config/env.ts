@@ -1,8 +1,10 @@
-/**
- * TODO(main-deploy): hardcode temporal para conectar frontend al backend desplegado.
- * Eliminar este valor fijo y volver a VITE_API_BASE_URL después del despliegue.
- */
-export const API_BASE =
-  'https://ca-mpra-dev.happymoss-e05a594f.brazilsouth.azurecontainerapps.io'
+const LOCAL_API_BASE = 'http://localhost:8000'
+
+function normalizeApiBase(value: string | undefined): string {
+  const apiBase = value?.trim() || LOCAL_API_BASE
+  return apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')
+}
+
+export const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE_URL)
 
 export const API_V1 = `${API_BASE}/api/v1`

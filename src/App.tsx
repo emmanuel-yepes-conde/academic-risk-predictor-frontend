@@ -1,4 +1,4 @@
-import { useState, useEffect, Component, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, Component, type ReactNode } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
@@ -11,6 +11,8 @@ import Dashboard from './pages/Dashboard'
 import GradesPage from './pages/Grades'
 import AdminPage from './pages/Admin'
 import EstadisticasProfesor from './pages/EstadisticasProfesor'
+import ConsentModal from './components/ConsentModal'
+import { consentService } from './services/consentService'
 
 // ─── Error Boundary ──────────────────────────────────────────────────────────
 interface EBState { hasError: boolean; message: string }
@@ -149,6 +151,46 @@ function ProfessorGrades() {
   )
 }
 
+// ─── Student consent gate ────────────────────────────────────────────────────
+function StudentConsentGate() {
+  const { user, logout } = useAuth()
+  const [needsConsent, setNeedsConsent] = useState(false)
+  const [termsVersion, setTermsVersion] = useState<string | undefined>(undefined)
+
+  const checkConsent = useCallback(async () => {
+    if (!user || user.role !== 'student') {
+      setNeedsConsent(false)
+      return
+    }
+    try {
+      const status = await consentService.getMine()
+      setTermsVersion(status.current_terms_version)
+      setNeedsConsent(!status.has_accepted)
+    } catch {
+      // Si falla la consulta no bloqueamos la UI; otros endpoints exigirán consentimiento.
+      setNeedsConsent(false)
+    }
+  }, [user])
+
+  useEffect(() => { void checkConsent() }, [checkConsent])
+
+  const handleAccept = async () => {
+    await consentService.accept()
+    setNeedsConsent(false)
+  }
+
+  if (!user || user.role !== 'student') return null
+
+  return (
+    <ConsentModal
+      open={needsConsent}
+      termsVersion={termsVersion}
+      onAccept={handleAccept}
+      onLogout={logout}
+    />
+  )
+}
+
 // ─── Root ────────────────────────────────────────────────────────────────────
 export default function App() {
   const { user } = useAuth()
@@ -156,6 +198,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <StudentConsentGate />
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={location.pathname}
