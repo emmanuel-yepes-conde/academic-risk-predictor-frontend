@@ -579,6 +579,32 @@ export default function MateriaDetalle() {
                     )}
                   </AnimatePresence>
 
+                  {/* Indicadores de seguimiento */}
+                  {(() => {
+                    const g = gradesData as BackendGradesRead & { _asistencia?: number|null; _logins?: number|null; _uso_tutorias?: boolean|null }
+                    const indicators = [
+                      { label: 'Asistencia',   value: g._asistencia   != null ? `${Number(g._asistencia).toFixed(1)} %`  : '—', color: 'var(--green-accent)' },
+                      { label: 'Sesiones LMS', value: g._logins       != null ? String(g._logins)                         : '—', color: '#d97706' },
+                      { label: 'Tutorías',     value: g._uso_tutorias != null ? (g._uso_tutorias ? '✅ Sí' : '❌ No')     : '—', color: g._uso_tutorias ? '#16a34a' : 'var(--text-muted)' },
+                    ]
+                    return (
+                      <div className="rounded-xl p-3" style={{ background: 'var(--canvas-warm)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                        <p className="text-[0.58rem] font-extrabold uppercase tracking-wider mb-2.5"
+                           style={{ color: 'var(--text-faint)' }}>Indicadores de seguimiento</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {indicators.map(({ label, value, color }) => (
+                            <div key={label} className="bg-white rounded-lg p-2.5 text-center"
+                                 style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
+                              <p className="text-[0.58rem] font-bold uppercase tracking-wider mb-1"
+                                 style={{ color: 'var(--text-faint)' }}>{label}</p>
+                              <p className="text-sm font-extrabold" style={{ color }}>{value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   {/* Final grade */}
                   <div
                     className="rounded-xl p-3 flex items-center justify-between"

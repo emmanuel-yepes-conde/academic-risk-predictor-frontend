@@ -9,19 +9,33 @@ import { useGrades } from '../context/GradesContext'
 import { enrollmentService } from '../services/enrollmentService'
 import { friendlyError } from '../services/errorMessages'
 import Header from '../components/Header'
-import GradeTable from '../components/GradeTable'
-import ComponentsConfig from '../components/ComponentsConfig'
-import ImportModal from '../components/ImportModal'
+import { courseService, type BackendCourse } from '../services/courseService'
+import { enrollmentService, type BackendEnrollment, type IndicatorsUpdateInput } from '../services/enrollmentService'
+import {
+  referralService,
+  type CutConfig,
+  type CutActivity,
+  type ReferralCreateInput,
+  type BackendReferral,
+  REFERRAL_TYPE_OPTIONS,
+  type ReferralType,
+  type ReferralStatus,
+  type AsistioValue,
+} from '../services/referralService'
+import type { BackendUser } from '../services/authService'
+import { useToast } from '../components/Toast'
 
-interface Props {
-  course: Course
-  grades: Grade[]
-  lastSaved: Date | null
-  onUpdateGrade: (studentId: string, componentId: string, value: number | null) => void
-  onUpdateComponents: (courseId: string, components: Course['components']) => void
-  onUpdateCuts: (courseId: string, cuts: Course['cuts']) => void
-  onBack: () => void
-  onLogout: () => void
+// ── Colores por umbral ────────────────────────────────────────────────────────
+// Notas (0–5): ≥ 3.4 verde | 3.0–3.39 naranja | < 3.0 rojo
+// Asistencia (0–100): ≥ 75 verde | 60–74 naranja | < 60 rojo
+
+type Threshold = 'green' | 'orange' | 'red' | 'none'
+
+function gradeThreshold(value: number | null): Threshold {
+  if (value == null) return 'none'
+  if (value >= 3.4) return 'green'
+  if (value >= 3.0) return 'orange'
+  return 'red'
 }
 
 type Tab = 'grades' | 'config' | 'attendance'
@@ -133,18 +147,38 @@ export default function GradesPage({
     [course.cuts, attendanceCutIndex],
   )
 
-  const handleImport = (importedGrades: Grade[]) => {
-    let count = 0
-    for (const g of importedGrades) {
-      if (g.value !== null) {
-        onUpdateGrade(g.studentId, g.componentId, g.value)
-        count++
-      }
+  const [tipo,      setTipo]      = useState<ReferralType>('Bajo rendimiento académico')
+  const [otroDesc,  setOtroDesc]  = useState('')
+  const [obs,       setObs]       = useState('')
+  const [fecha,     setFecha]     = useState(today)
+  const [saving,    setSaving]    = useState(false)
+
+  async function handleSubmit() {
+    if (obs.trim().length < 5) {
+      toast.error('Observaciones muy cortas', 'Escribe al menos 5 caracteres.')
+      return
     }
-    toast.success(
-      `${count} notas importadas`,
-      `Las calificaciones de ${course.name} fueron actualizadas correctamente.`
-    )
+    if (tipo === 'Otros' && !otroDesc.trim()) {
+      toast.error('Describe el motivo', 'Especifica el tipo de remisión.')
+      return
+    }
+    setSaving(true)
+    try {
+      const body: ReferralCreateInput = {
+        tipo_remision:      tipo,
+        tipo_remision_otro: tipo === 'Otros' ? otroDesc : null,
+        observaciones:      obs,
+        fecha_remision:     fecha,
+      }
+      const created = await referralService.create(enrollmentId, body)
+      toast.success('Remisión creada', `${studentName} fue remitido a consejería.`)
+      onCreated(created)
+      onClose()
+    } catch {
+      toast.error('Error al crear remisión', 'Intenta de nuevo.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSaveConfig = async () => {
@@ -287,27 +321,27 @@ export default function GradesPage({
   }, [activeTab, attendanceLoadedCourseId, course.id, attendanceLoading, loadAttendance])
 
   return (
-    <div className="min-h-screen bg-usb-canvas flex flex-col">
-      <Header
-        lastSaved={lastSaved}
-        subtitle={`${course.code} · ${course.name}`}
-      />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94 }}
+        className="relative bg-white rounded-2xl p-6 max-w-md w-full"
+        style={{ boxShadow: 'var(--shadow-modal)' }}
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100">
+          <X size={14} style={{ color: 'var(--text-faint)' }} />
+        </button>
 
-      {/* Breadcrumb + actions */}
-      <div className="bg-white border-b border-usb-border px-5 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-usb-muted transition-colors font-medium"
-            style={{ ['--tw-hover-color' as string]: 'var(--green-accent)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--green-accent)')}
-            onMouseLeave={e => (e.currentTarget.style.color = '')}
-          >
-            <ChevronLeft size={14} />
-            <span className="text-xs">Mis materias</span>
-          </button>
-          <span className="text-usb-border">/</span>
-          <span className="text-xs font-bold" style={{ color: 'var(--green-accent)' }}>{course.name}</span>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(220,38,38,0.08)' }}>
+            <Send size={18} style={{ color: '#dc2626' }} />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-base" style={{ color: 'var(--text-dark)' }}>Remitir a consejería</h3>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{studentName}</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -423,13 +457,11 @@ export default function GradesPage({
                 }`}
               style={activeTab === tab.key ? { background: 'var(--green-accent)' } : {}}
             >
-              {tab.label}
-              {tab.warn && (
-                <span className={`w-2 h-2 rounded-full ${activeTab === tab.key ? 'bg-white' : 'bg-amber-400'}`} />
-              )}
-            </button>
-          ))}
-        </div>
+              {REFERRAL_TYPE_OPTIONS.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
 
         {/* Tab content */}
         <motion.div

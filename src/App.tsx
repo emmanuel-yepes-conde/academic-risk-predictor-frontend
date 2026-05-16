@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback, Component, type ReactNode } from 'rea
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
-import { useGrades } from './context/GradesContext'
 import LoginPage from './pages/Login'
 import Prediccion from './pages/Prediccion'
 import MisMaterias from './pages/MisMaterias'
 import MateriaDetalle from './pages/MateriaDetalle'
 import Dashboard from './pages/Dashboard'
 import GradesPage from './pages/Grades'
+import ReferralsPage from './pages/Referrals'
 import AdminPage from './pages/Admin'
 import EstadisticasProfesor from './pages/EstadisticasProfesor'
 import ConsentModal from './components/ConsentModal'
@@ -215,12 +215,12 @@ export default function App() {
               element={user ? <RoleHome /> : <LoginPage />}
             />
 
-            {/* Admin — explicit path so it never conflicts with professor wildcard */}
+            {/* Admin */}
             <Route path="/admin" element={
               <RequireRole role="admin"><AdminPage /></RequireRole>
             } />
 
-            {/* Student — Mi Progreso is the home */}
+            {/* Student */}
             <Route path="/" element={
               <RequireRole role="student"><MisMaterias /></RequireRole>
             } />
@@ -234,16 +234,19 @@ export default function App() {
 
             {/* Professor */}
             <Route path="/dashboard" element={
-              <RequireRole role="professor"><ProfessorDashboard /></RequireRole>
+              <RequireRole role="professor"><Dashboard /></RequireRole>
             } />
-            <Route path="/grades" element={
-              <RequireRole role="professor"><ProfessorGrades /></RequireRole>
+            <Route path="/grades/:courseId" element={
+              <RequireRole role="professor"><GradesPage /></RequireRole>
             } />
-            <Route path="/estadisticas" element={
-              <RequireRole role="professor"><EstadisticasProfesor /></RequireRole>
+            <Route path="/referrals/:courseId" element={
+              <RequireRole role="professor"><ReferralsPage /></RequireRole>
             } />
+            {/* Legacy redirects */}
+            <Route path="/grades"       element={<Navigate to="/dashboard" replace />} />
+            <Route path="/estadisticas" element={<Navigate to="/dashboard" replace />} />
 
-            {/* Catch-all → redirect by role */}
+            {/* Catch-all */}
             <Route path="*" element={<RoleHome />} />
           </Routes>
         </motion.div>

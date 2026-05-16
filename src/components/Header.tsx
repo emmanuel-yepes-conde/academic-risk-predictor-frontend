@@ -7,8 +7,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LogOut, Cloud, Loader2,
-  LayoutDashboard, GraduationCap, BookOpen, Users, Command,
-  ChevronDown, Settings, HelpCircle,
+  LayoutDashboard, GraduationCap, Settings, Command,
+  ChevronDown, HelpCircle,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -206,9 +206,7 @@ export default function Header({ lastSaved, subtitle }: Props) {
             {/* Professor nav */}
             {isProfessor && (
               <nav id="tour-prof-nav" className="hidden md:flex items-center gap-0.5">
-                <NavLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" exact />
-                <NavLink to="/grades"    icon={BookOpen}         label="Calificaciones" exact />
-                <NavLink to="/estadisticas" icon={Users}         label="Estadísticas" exact />
+                <NavLink to="/dashboard" icon={LayoutDashboard} label="Mis Materias" exact />
               </nav>
             )}
 
