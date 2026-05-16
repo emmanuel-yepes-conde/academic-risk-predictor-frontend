@@ -11,6 +11,7 @@ import {
   GraduationCap, BarChart2, User, Award, ChevronDown,
 } from 'lucide-react'
 import Header from '../components/Header'
+import CourseChat from '../components/CourseChat'
 import { courseService, type BackendCourse } from '../services/courseService'
 import { predictionService } from '../services/predictionService'
 import {
@@ -388,7 +389,16 @@ export default function MateriaDetalle() {
               </div>
             </motion.aside>
 
-            <div>
+            <div className="space-y-3">
+              {/* Chat de materia */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.10 }}
+              >
+                <CourseChat courseId={courseId ?? ''} courseName={course.name} />
+              </motion.div>
+
               {/* Calificaciones */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}

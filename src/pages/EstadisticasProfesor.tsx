@@ -7,13 +7,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users, BookOpen, Layers, Loader2, AlertCircle,
-  BarChart2, Hash, Calendar, TrendingUp,
+  BarChart2, Hash, Calendar, TrendingUp, Upload,
 } from 'lucide-react'
 import Header from '../components/Header'
 import { useAuth } from '../context/AuthContext'
 import { courseService, type BackendCourse } from '../services/courseService'
 import { programService } from '../services/programService'
 import type { BackendUser } from '../services/authService'
+import DocumentUploadModal from '../components/DocumentUploadModal'
 
 // ─── Enriched course with student list ────────────────────────────────────────
 interface CourseWithStudents {
@@ -40,6 +41,7 @@ export default function EstadisticasProfesor() {
   const [coursesData, setCoursesData]   = useState<CourseWithStudents[]>([])
   const [programStats, setProgramStats] = useState<ProgramStats[]>([])
   const [totalUnique, setTotalUnique]   = useState(0)
+  const [uploadCourse, setUploadCourse] = useState<BackendCourse | null>(null)
 
   const fetchData = useCallback(async () => {
     if (!professorId) return
@@ -276,6 +278,9 @@ export default function EstadisticasProfesor() {
                         <th className="px-5 py-3 text-[0.68rem] font-bold uppercase tracking-wider text-usb-muted">
                           Distribución
                         </th>
+                        <th className="px-5 py-3 text-[0.68rem] font-bold uppercase tracking-wider text-usb-muted">
+                          Guía
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -335,6 +340,22 @@ export default function EstadisticasProfesor() {
                                   </div>
                                 </div>
                               </td>
+                              <td className="px-5 py-3">
+                                <button
+                                  onClick={() => setUploadCourse(cws.course)}
+                                  className="inline-flex items-center gap-1.5 text-[0.72rem] font-bold px-3 py-1.5 rounded-lg transition-colors"
+                                  style={{
+                                    background: 'rgba(0,117,74,0.08)',
+                                    color: 'var(--green-accent)',
+                                    border: '1px solid rgba(0,117,74,0.18)',
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,117,74,0.15)')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,117,74,0.08)')}
+                                >
+                                  <Upload size={12} />
+                                  Subir PDF
+                                </button>
+                              </td>
                             </motion.tr>
                           )
                         })}
@@ -354,6 +375,12 @@ export default function EstadisticasProfesor() {
         )}
       </main>
 
+      <DocumentUploadModal
+        open={uploadCourse !== null}
+        courseId={uploadCourse?.id ?? ''}
+        courseName={uploadCourse?.name ?? ''}
+        onClose={() => setUploadCourse(null)}
+      />
     </div>
   )
 }
