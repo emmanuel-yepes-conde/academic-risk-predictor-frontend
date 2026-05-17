@@ -134,6 +134,7 @@ export default function GradesPage({
   const [attendanceLoadedCourseId, setAttendanceLoadedCourseId] = useState<string | null>(null)
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([])
   const [sessionHistoryLoading, setSessionHistoryLoading] = useState(false)
+  const [sessionHistoryError, setSessionHistoryError] = useState(false)
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null)
   const [simBonus, setSimBonus] = useState(0)
   const [simStudentId, setSimStudentId] = useState<string>('all')
@@ -303,14 +304,15 @@ export default function GradesPage({
   }, [activeTab, attendanceLoadedCourseId, course.id, attendanceLoading, loadAttendance])
 
   useEffect(() => {
-    if (activeTab === 'qr-history' && sessionHistory.length === 0 && !sessionHistoryLoading) {
+    if (activeTab === 'qr-history' && sessionHistory.length === 0 && !sessionHistoryLoading && !sessionHistoryError) {
       setSessionHistoryLoading(true)
-      void attendanceService.getCourseSessionHistory(course.id).then(data => {
-        setSessionHistory(data)
-        setSessionHistoryLoading(false)
-      })
+      setSessionHistoryError(false)
+      void attendanceService.getCourseSessionHistory(course.id)
+        .then(data => { setSessionHistory(data) })
+        .catch(() => { setSessionHistoryError(true) })
+        .finally(() => { setSessionHistoryLoading(false) })
     }
-  }, [activeTab, course.id, sessionHistory.length, sessionHistoryLoading])
+  }, [activeTab, course.id, sessionHistory.length, sessionHistoryLoading, sessionHistoryError])
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--canvas-warm)' }}>
@@ -849,11 +851,12 @@ export default function GradesPage({
                 <button
                   onClick={() => {
                     setSessionHistory([])
+                    setSessionHistoryError(false)
                     setSessionHistoryLoading(true)
-                    void attendanceService.getCourseSessionHistory(course.id).then(data => {
-                      setSessionHistory(data)
-                      setSessionHistoryLoading(false)
-                    })
+                    void attendanceService.getCourseSessionHistory(course.id)
+                      .then(data => { setSessionHistory(data) })
+                      .catch(() => { setSessionHistoryError(true) })
+                      .finally(() => { setSessionHistoryLoading(false) })
                   }}
                   className="text-xs font-bold px-3 py-1.5 rounded-xl border border-usb-border hover:bg-usb-canvas transition-colors"
                   style={{ color: 'var(--green-accent)' }}
@@ -865,6 +868,13 @@ export default function GradesPage({
               {sessionHistoryLoading ? (
                 <div className="flex justify-center py-10">
                   <Loader2 size={22} className="animate-spin" style={{ color: 'var(--green-accent)' }} />
+                </div>
+              ) : sessionHistoryError ? (
+                <div className="flex flex-col items-center py-12 gap-2 rounded-xl"
+                     style={{ background: 'var(--canvas-warm)', border: '1.5px dashed rgba(220,38,38,0.20)' }}>
+                  <QrCode size={28} className="text-rose-300" />
+                  <p className="font-semibold text-sm text-usb-muted">No se pudieron cargar las sesiones</p>
+                  <p className="text-xs text-usb-faint">Verifica tu conexión e intenta de nuevo.</p>
                 </div>
               ) : sessionHistory.length === 0 ? (
                 <div className="flex flex-col items-center py-12 gap-2 rounded-xl"

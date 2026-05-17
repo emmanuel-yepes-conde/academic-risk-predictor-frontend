@@ -294,7 +294,7 @@ function GradoNecesario({
             {r.done ? (
               <>
                 <p className="text-base font-extrabold" style={{ color: gradeColor(r.grade) }}>
-                  {r.grade !== null ? r.grade.toFixed(1) : '—'}
+                  {r.grade != null ? Number(r.grade).toFixed(1) : '—'}
                 </p>
                 <p className="text-[0.58rem] text-green-600 font-bold mt-0.5 flex items-center justify-center gap-0.5">
                   <CheckCircle2 size={9} /> Listo
@@ -469,25 +469,25 @@ export default function MateriaDetalle() {
             Volver a Mi Progreso
           </button>
           {course && (
-            <div className="overflow-hidden">
-              <div className="flex items-center gap-3 whitespace-nowrap min-w-0">
-                <BookOpen size={18} style={{ color: 'var(--green-light, #d4e9e2)' }} />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 min-w-0">
+                <BookOpen size={18} className="flex-shrink-0" style={{ color: 'var(--green-light, #d4e9e2)' }} />
                 <h1
-                  className="text-white font-extrabold text-xl leading-tight truncate"
+                  className="text-white font-extrabold text-xl leading-tight min-w-0 break-words"
                   style={{ letterSpacing: '-0.02em' }}
                 >
                   {course.name}
                 </h1>
                 <span
-                  className="text-[0.68rem] font-bold px-2.5 py-0.5 rounded-full"
+                  className="text-[0.68rem] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
                   style={{ background: 'rgba(212,233,226,0.12)', color: 'rgba(212,233,226,0.80)' }}
                 >
                   {course.code}
                 </span>
-                <span className="flex items-center gap-1 text-sm" style={{ color: 'rgba(212,233,226,0.55)' }}>
+                <span className="hidden sm:flex items-center gap-1 text-sm flex-shrink-0" style={{ color: 'rgba(212,233,226,0.55)' }}>
                   <Hash size={11} />{course.credits} créditos
                 </span>
-                <span className="flex items-center gap-1 text-sm" style={{ color: 'rgba(212,233,226,0.55)' }}>
+                <span className="hidden sm:flex items-center gap-1 text-sm flex-shrink-0" style={{ color: 'rgba(212,233,226,0.55)' }}>
                   <Calendar size={11} />{course.academic_period}
                 </span>
               </div>
@@ -607,7 +607,7 @@ export default function MateriaDetalle() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.13 }}
-                className="flex gap-1 bg-white border rounded-2xl p-1 w-fit"
+                className="flex gap-1 bg-white border rounded-2xl p-1 w-fit max-w-full overflow-x-auto"
                 style={{ boxShadow: 'var(--shadow-card)', borderColor: 'rgba(0,0,0,0.07)' }}
               >
                 {([

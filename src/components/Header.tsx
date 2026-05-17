@@ -82,7 +82,7 @@ function fmtNotifTime(iso: string): string {
 function NotificationBell() {
   const { user }    = useAuth()
   const isStudent   = user?.role === 'student'
-  const { supported: pushSupported, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications()
+  const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications()
 
   const [open, setOpen]           = useState(false)
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
@@ -163,7 +163,7 @@ function NotificationBell() {
               animate={{ opacity: 1, scale: 1,    y: 0 }}
               exit={{   opacity: 0, scale: 0.94, y: -6 }}
               transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-              className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl overflow-hidden z-[50]"
+              className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white rounded-2xl overflow-hidden z-[50]"
               style={{ boxShadow: 'var(--shadow-modal)', maxHeight: '480px' }}
             >
               {/* Header */}
@@ -227,32 +227,44 @@ function NotificationBell() {
                 )}
               </div>
 
-              {/* Footer: push toggle (solo estudiantes con soporte) */}
-              {isStudent && pushSupported && (
+              {/* Footer: push toggle (solo estudiantes) */}
+              {isStudent && (
                 <div className="border-t border-usb-border px-4 py-2.5 flex items-center justify-between gap-3"
                      style={{ background: 'var(--canvas-warm)' }}>
-                  <div className="flex items-center gap-2">
-                    {pushLoading
-                      ? <Loader2 size={13} className="animate-spin text-usb-muted" />
-                      : subscribed
-                        ? <Bell size={13} style={{ color: 'var(--green-accent)' }} />
-                        : <BellOff size={13} className="text-usb-faint" />
-                    }
-                    <span className="text-xs font-semibold text-usb-muted">
-                      {subscribed ? 'Alertas push activas' : 'Alertas push desactivadas'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => void (subscribed ? unsubscribe() : subscribe())}
-                    disabled={pushLoading}
-                    className="relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 disabled:opacity-50"
-                    style={{ background: subscribed ? 'var(--green-accent)' : '#d1d5db' }}
-                  >
-                    <span
-                      className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
-                      style={{ transform: subscribed ? 'translateX(16px)' : 'translateX(0px)' }}
-                    />
-                  </button>
+                  {!pushSupported ? (
+                    <p className="text-xs text-usb-faint">
+                      Tu navegador no soporta alertas push
+                    </p>
+                  ) : permission === 'denied' ? (
+                    <p className="text-xs text-usb-faint">
+                      Alertas bloqueadas — actívalas en ajustes del navegador
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 min-w-0">
+                        {pushLoading
+                          ? <Loader2 size={13} className="animate-spin text-usb-muted flex-shrink-0" />
+                          : subscribed
+                            ? <Bell size={13} style={{ color: 'var(--green-accent)' }} className="flex-shrink-0" />
+                            : <BellOff size={13} className="text-usb-faint flex-shrink-0" />
+                        }
+                        <span className="text-xs font-semibold text-usb-muted truncate">
+                          {pushLoading ? 'Configurando…' : subscribed ? 'Alertas push activas' : 'Alertas push desactivadas'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => void (subscribed ? unsubscribe() : subscribe())}
+                        disabled={pushLoading}
+                        className="relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 disabled:opacity-50"
+                        style={{ background: subscribed ? 'var(--green-accent)' : '#d1d5db' }}
+                      >
+                        <span
+                          className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+                          style={{ transform: subscribed ? 'translateX(16px)' : 'translateX(0px)' }}
+                        />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </motion.div>
