@@ -295,6 +295,7 @@ function UniversidadesTab() {
         <EmptyState icon={Building2} message="No hay universidades registradas. Crea la primera." />
       ) : (
         <div className="bg-white rounded-2xl border border-usb-border overflow-hidden shadow-card">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-usb-border bg-usb-canvas">
@@ -329,6 +330,7 @@ function UniversidadesTab() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -399,7 +401,7 @@ function CreateProgramModal({ onClose, onCreated }: { onClose: () => void; onCre
   return (
     <Modal title="Nuevo Programa" icon={BookOpen} onClose={onClose} footer={footer}>
       <div className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel required>Código</FieldLabel>
             <input className={inputClass} value={programCode} onChange={e => setProgramCode(e.target.value)} placeholder="Ej: ING-SIS" autoFocus />
@@ -422,7 +424,7 @@ function CreateProgramModal({ onClose, onCreated }: { onClose: () => void; onCre
           <FieldLabel required>Institución</FieldLabel>
           <input className={inputClass} value={institution} onChange={e => setInstitution(e.target.value)} placeholder="Ej: Facultad de Ingeniería" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel required>Código SNIES</FieldLabel>
             <input className={inputClass} type="number" value={sniesCode} onChange={e => setSniesCode(e.target.value)} placeholder="Ej: 12345" />
@@ -507,7 +509,7 @@ function EditProgramModal({
   return (
     <Modal title="Editar Programa" icon={Pencil} onClose={onClose} footer={footer}>
       <div className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel required>Código</FieldLabel>
             <input className={inputClass} value={programCode} onChange={e => setProgramCode(e.target.value)} placeholder="Ej: ING-SIS" autoFocus />
@@ -530,7 +532,7 @@ function EditProgramModal({
           <FieldLabel required>Institución</FieldLabel>
           <input className={inputClass} value={institution} onChange={e => setInstitution(e.target.value)} placeholder="Ej: Facultad de Ingeniería" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel required>Código SNIES</FieldLabel>
             <input className={inputClass} type="number" value={sniesCode} onChange={e => setSniesCode(e.target.value)} placeholder="Ej: 12345" />
@@ -766,6 +768,7 @@ function CoursesView({
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-usb-border overflow-hidden shadow-card">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-usb-border bg-usb-canvas">
@@ -838,6 +841,7 @@ function CoursesView({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -1078,7 +1082,7 @@ function EditSubjectModal({
   return (
     <Modal title="Editar Materia" icon={Pencil} onClose={onClose} footer={footer}>
       <div className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel required>Código</FieldLabel>
             <input className={inputClass} value={code} onChange={e => setCode(e.target.value)} placeholder="Ej: MAT-101" autoFocus />
@@ -1154,7 +1158,7 @@ function CreateSubjectModal({
   return (
     <Modal title="Nueva Materia" icon={BookMarked} onClose={onClose} footer={footer}>
       <div className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel required>Código</FieldLabel>
             <input className={inputClass} value={code} onChange={e => setCode(e.target.value)} placeholder="Ej: MAT-101" autoFocus />
@@ -2213,6 +2217,7 @@ function UsuariosTab() {
         <EmptyState icon={Users} message="No hay usuarios para mostrar." />
       ) : (
         <div className="bg-white rounded-2xl border border-usb-border overflow-hidden shadow-card">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-usb-border bg-usb-canvas">
@@ -2263,6 +2268,7 @@ function UsuariosTab() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 pb-4 px-4 border-t border-usb-border">
@@ -2605,7 +2611,7 @@ function CreateCourseModal({
             </div>
           </>
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel required>Sección</FieldLabel>
             <input className={inputClass} value={section} onChange={e => setSection(e.target.value)} placeholder="Ej: A" autoFocus={!!lockedSubject} />

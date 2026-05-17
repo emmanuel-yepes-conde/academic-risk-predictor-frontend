@@ -102,7 +102,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       animate={{ opacity: 1, x: 0,  scale: 1 }}
       exit={{   opacity: 0, x: 80,  scale: 0.94 }}
       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-      className="relative flex items-start gap-3 w-[22rem] bg-white rounded-2xl overflow-hidden pr-4 pl-3.5 py-3.5"
+      className="relative flex items-start gap-3 w-full max-w-[22rem] bg-white rounded-2xl overflow-hidden pr-4 pl-3.5 py-3.5"
       style={{ boxShadow: 'var(--shadow-modal)' }}
     >
       {/* Left color accent */}
@@ -164,7 +164,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div
         aria-live="polite"
         aria-atomic="false"
-        className="fixed top-4 right-4 z-[500] flex flex-col gap-2 pointer-events-none"
+        className="fixed top-4 right-4 left-4 sm:left-auto z-[500] flex flex-col gap-2 pointer-events-none items-end"
       >
         <AnimatePresence mode="popLayout">
           {toasts.map(t => (

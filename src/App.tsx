@@ -38,12 +38,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, EBState> {
             <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto">
               <span className="text-2xl">⚠️</span>
             </div>
-            <h2 className="text-xl font-extrabold text-usb-text">Algo salió mal</h2>
+            <h2 className="text-xl font-extrabold text-usb-text">Ups, algo salió mal</h2>
             <p className="text-usb-muted text-sm">
-              Ocurrió un error inesperado al cargar esta página.
-            </p>
-            <p className="text-xs text-usb-faint font-mono bg-usb-canvas rounded-xl px-4 py-2">
-              {this.state.message}
+              No pudimos cargar esta sección. Intenta recargar la página — si el problema continúa, contacta a soporte.
             </p>
             <button
               onClick={() => { this.setState({ hasError: false, message: '' }); window.location.reload() }}

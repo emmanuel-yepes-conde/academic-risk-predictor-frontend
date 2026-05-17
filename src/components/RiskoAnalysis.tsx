@@ -6,6 +6,29 @@
 
 import { Sparkles, BarChart2, TrendingUp, TrendingDown, Target, Lightbulb } from 'lucide-react'
 
+// ─── Inline markdown renderer ─────────────────────────────────────────────────
+// Parses **bold**, *italic*, and `code` spans without a full markdown library.
+
+function renderInlineMarkdown(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-bold">{part.slice(2, -2)}</strong>
+    }
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+      return <em key={i}>{part.slice(1, -1)}</em>
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={i} className="px-1 rounded text-[0.7em] font-mono" style={{ background: 'rgba(0,0,0,0.07)' }}>
+          {part.slice(1, -1)}
+        </code>
+      )
+    }
+    return part
+  })
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -78,7 +101,7 @@ function SummarySection({ text }: { text: string }) {
         letterSpacing: '0.01em',
       }}
     >
-      {text}
+      {renderInlineMarkdown(text)}
     </div>
   )
 }
@@ -99,7 +122,7 @@ function GradeLines({ text }: { text: string }) {
               style={{ width: 6, height: 6, background: dotColor, marginTop: 5 }}
             />
             <span className="text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
-              {line}
+              {renderInlineMarkdown(line)}
             </span>
           </div>
         )
@@ -111,7 +134,7 @@ function GradeLines({ text }: { text: string }) {
 function GenericText({ text }: { text: string }) {
   return (
     <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-      {text}
+      {renderInlineMarkdown(text)}
     </p>
   )
 }
