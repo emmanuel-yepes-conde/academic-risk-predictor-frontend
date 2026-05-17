@@ -238,7 +238,7 @@ export default function AsistenciaProfesor() {
                 <div className="bg-white rounded-2xl p-5 flex flex-col items-center gap-4" style={{ boxShadow: 'var(--shadow-card)', border: '1px solid rgba(0,0,0,0.07)' }}>
                   {session.is_active ? (
                     <>
-                      <QRCode value={`http://localhost:5174/asistencia/${session.id}/${currentToken}`} size={220} />
+                      <QRCode value={`${window.location.origin}/asistencia/${session.id}/${currentToken}`} size={220} />
 
                       {/* Countdown bar */}
                       <div className="w-full space-y-1">
