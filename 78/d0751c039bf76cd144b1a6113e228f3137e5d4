@@ -1,0 +1,143 @@
+vite.config.ts
+  s_b03b3a99345ebc::t_64e36a1c9e4c2d 3,9-38
+  s_b03b3a99345ebc::t_631418ae50f652 7-8,39
+src/components/QRCode.tsx
+  s_b03b3a99345ebc::t_182f07ff78e134 1,5-6,9-16,19-21,23-30
+  s_b03b3a99345ebc::t_057dbe31b04f9c 2-4,7-8,17-18,22
+src/pages/Admin.tsx
+  s_b03b3a99345ebc::t_28b03862dc8d39 31-32
+  s_b03b3a99345ebc::t_6bf702b1dfa307 3134,3136-3137,3140,3142-3143,3146-3148,3152-3157,3162-3169,3171-3173
+  s_b03b3a99345ebc::t_d8dc20f837a618 14
+  s_b03b3a99345ebc::t_09315e6dfdf558 3139,3145
+  s_b03b3a99345ebc::t_990dea866f7ee5 40
+  s_b03b3a99345ebc::t_fbf142fd5f94f6 3078-3111,3118-3133,3135,3138,3141,3144,3149-3151,3158-3161,3170,3174-3273,3277-3399
+  s_b03b3a99345ebc::t_e86af38c36ce37 3274-3276
+  s_b03b3a99345ebc::t_8d5584e36ebee9 3506
+  s_b03b3a99345ebc::t_3ff10688b52db0 3112-3117
+  s_b03b3a99345ebc::t_c7b07e503f457b 3404-3406
+  s_b03b3a99345ebc::t_73ef5a59206387 3017-3077
+src/services/templateService.ts
+  s_b03b3a99345ebc::t_25e1aee15ff801 1-15
+src/components/RiskoAnalysis.tsx
+  s_b03b3a99345ebc::t_2ade4752a54d56 1-215
+src/components/CourseChat.tsx
+  s_b03b3a99345ebc::t_845f2637bfd0b2 4-15
+  s_b03b3a99345ebc::t_8ff3594a1a1b48 197
+src/services/notificationService.ts
+  s_b03b3a99345ebc::t_d63dd8e13abbc1 2,6-14,21,30-103
+src/services/attendanceService.ts
+  s_b03b3a99345ebc::t_549bf6230d2dfa 36-58
+  s_b03b3a99345ebc::t_59a13a34272384 121-149
+  s_b03b3a99345ebc::t_b787ca997493a2 95
+  s_b03b3a99345ebc::t_c186129de3747c 1-35,59-94,96-120,150
+src/lib/qrcode.ts
+  s_b03b3a99345ebc::t_aa55438fb82240 1-399
+src/hooks/usePWAInstall.ts
+  s_b03b3a99345ebc::t_efa9b7059482c3 1-52
+src/pages/Perfil.tsx
+  s_b03b3a99345ebc::t_e24cc9b5923511 1-341
+src/pages/AsistenciaEstudiante.tsx
+  s_b03b3a99345ebc::t_1358abf130d0e6 158,160-191
+  s_b03b3a99345ebc::t_b2db4c83260e33 1-157,159,192-200
+src/pages/Simulador.tsx
+  s_b03b3a99345ebc::t_ed1e7bf2ba45ba 1-12,14-21,23-176,181-621,627-688
+  s_b03b3a99345ebc::t_07de66f4668dea 13
+  s_b03b3a99345ebc::t_a6525dadb79056 22
+  s_b03b3a99345ebc::t_4fd928228b037e 177-180
+  s_b03b3a99345ebc::t_cf90277b136496 622-626
+src/components/Header.tsx
+  s_b03b3a99345ebc::t_d56866d407a7a4 5,12-13,20
+  s_b03b3a99345ebc::t_1a845c42699289 83-86
+  s_b03b3a99345ebc::t_621c43624617d9 186,229-257
+  s_b03b3a99345ebc::t_9823d0a120719c 56-82,87-185,187-228,258-265
+  s_b03b3a99345ebc::t_c59eea56dea652 11,18-19
+  s_b03b3a99345ebc::t_c91e0fe4311bca 337-345
+  s_b03b3a99345ebc::t_6ffe1ccd447e89 368
+  s_b03b3a99345ebc::t_82d550ae391364 505-507
+  s_b03b3a99345ebc::t_a9c612cbc51b44 468-481
+src/pages/Dashboard.tsx
+  s_b03b3a99345ebc::t_4e9586b6f2a4c3 15-16
+  s_b03b3a99345ebc::t_3990906ed25c42 73-80,86,88,90-93
+  s_b03b3a99345ebc::t_d935d266672202 9
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_013125526f86ec 7
+  s_b03b3a99345ebc::t_3d13ba86c55e7a 1086-1087
+  s_b03b3a99345ebc::t_d53ac3f7b12bbc 157-175,177-329
+  s_b03b3a99345ebc::t_1598d6d8bfa333 12
+  s_b03b3a99345ebc::t_1ca152e5de35f3 15
+  s_b03b3a99345ebc::t_752b656db1771e 341-342
+  s_b03b3a99345ebc::t_482da2cc4f0bc1 444-451
+  s_b03b3a99345ebc::t_94856b3ac1a4d9 1031-1037
+  s_b03b3a99345ebc::t_ec53fe99965827 757-765
+  s_b03b3a99345ebc::t_f1f16a367620aa 11
+  s_b03b3a99345ebc::t_85284202b77b72 176
+  s_b03b3a99345ebc::t_0263f446868582 343-345
+  s_b03b3a99345ebc::t_fe23a3ec926b52 605,607,610-611,613-662,664-669,671-739,741-743
+  s_b03b3a99345ebc::t_585fd1987e2db8 606,608-609,612,663,670,740
+  s_b03b3a99345ebc::t_97749216f24800 971-977
+  s_b03b3a99345ebc::t_6168d4a1b5f558 578-591
+  s_b03b3a99345ebc::t_d0515183f5c7fe 25
+src/pages/AsistenciaProfesor.tsx
+  s_b03b3a99345ebc::t_af273b5b3e1874 341
+  s_b03b3a99345ebc::t_f48d2718ab978d 1-240,242-340,342-356
+  s_b03b3a99345ebc::t_623ab4dd54f0ae 241
+public/sw.js
+  s_b03b3a99345ebc::t_65b4a2ecdfcb38 1-46
+src/pages/Grades.tsx
+  s_b03b3a99345ebc::t_443db98df57586 158-163
+  s_b03b3a99345ebc::t_79b4cee5a65ce2 4
+  s_b03b3a99345ebc::t_22a2b379400152 2
+  s_b03b3a99345ebc::t_40fb891c769917 305-314
+  s_b03b3a99345ebc::t_7383a4c164e295 123
+  s_b03b3a99345ebc::t_d3bb9cb6dce782 598,841-968
+  s_b03b3a99345ebc::t_b284d28704514e 599-608,610-620,626-638,640-650,677-840
+  s_b03b3a99345ebc::t_6231e965fce1a6 609,621-625,639
+  s_b03b3a99345ebc::t_00eab4288eedd9 441
+  s_b03b3a99345ebc::t_290dae8d719d20 24-25
+  s_b03b3a99345ebc::t_9efe49c414cdbd 135-137
+  s_b03b3a99345ebc::t_fe73c6c07100b6 316-317,319-326,328
+  s_b03b3a99345ebc::t_be55ce6739fc48 5
+  s_b03b3a99345ebc::t_e87ea21aab8232 651-676
+  s_b03b3a99345ebc::t_09d50bfcbe445f 7
+  s_b03b3a99345ebc::t_5e3f92d0c83672 43
+  s_b03b3a99345ebc::t_c08b9b06244b1b 11
+  s_b03b3a99345ebc::t_57bf4cd8d1641b 15-23,26-28
+  s_b03b3a99345ebc::t_575699192fac09 330-338
+  s_b03b3a99345ebc::t_1b1346a8e0c09d 138
+  s_b03b3a99345ebc::t_8afb0e5f1806cc 442
+  s_b03b3a99345ebc::t_2e42ddf90b6757 453-456
+  s_b03b3a99345ebc::t_2f716d545a7ba2 150
+  s_b03b3a99345ebc::t_30afab44f1cde7 139
+  s_b03b3a99345ebc::t_045d901dd64563 12
+src/components/SubjectCard.tsx
+  s_b03b3a99345ebc::t_aa6864ad94b9da 44
+src/hooks/usePushNotifications.ts
+  s_b03b3a99345ebc::t_525f2d6031de75 17,21-23
+  s_b03b3a99345ebc::t_bfdb64a67b4f4a 1-16,18-20,24-103
+src/App.tsx
+  s_b03b3a99345ebc::t_b609ce69553166 239-241
+  s_b03b3a99345ebc::t_433e4cbda08f35 15-16
+  s_b03b3a99345ebc::t_941da294d46b21 17
+  s_b03b3a99345ebc::t_57199055f92974 255-260
+  s_b03b3a99345ebc::t_baf92e24365987 20
+  s_b03b3a99345ebc::t_567753c845945e 14
+  s_b03b3a99345ebc::t_07206c93d5f8c1 207
+  s_b03b3a99345ebc::t_669e9ecea1703f 262
+  s_b03b3a99345ebc::t_a897781857043f 248
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "78d0751c039bf76cd144b1a6113e228f3137e5d4",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
