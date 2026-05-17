@@ -82,24 +82,7 @@ function RoleHome() {
 
 // ─── Professor page components ───────────────────────────────────────────────
 function ProfessorDashboard() {
-  const navigate = useNavigate()
-  const { user, logout } = useAuth()
-  const { courseList, grades, refreshCourses, setSelectedCourseId } = useGrades()
-
-  useEffect(() => {
-    if (user?.professorId) void refreshCourses(user.professorId)
-  }, [user?.professorId, refreshCourses])
-
-  const myCourses = courseList.filter(c => c.professorId === user?.professorId)
-
-  return (
-    <Dashboard
-      courses={myCourses}
-      grades={grades}
-      onSelectCourse={c => { setSelectedCourseId(c.id); navigate('/grades') }}
-      onLogout={logout}
-    />
-  )
+  return <Dashboard />
 }
 
 function ProfessorGrades() {

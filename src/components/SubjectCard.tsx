@@ -1,10 +1,16 @@
 import { motion } from 'framer-motion'
 import { Users, BookOpen, ChevronRight, AlertTriangle } from 'lucide-react'
-import type { Course } from '../types'
 import CircularProgress from './CircularProgress'
 
+interface CourseDisplay {
+  code:        string
+  name:        string
+  group:       string
+  components?: { length?: number }[] | null
+}
+
 interface Props {
-  course: Course
+  course: CourseDisplay
   studentCount: number
   completionPct: number
   atRiskCount: number

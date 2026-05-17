@@ -16,17 +16,9 @@ import { courseService, type BackendCourse } from '../services/courseService'
 import { enrollmentService, type BackendEnrollment } from '../services/enrollmentService'
 
 // ── risk helpers ──────────────────────────────────────────────────────────────
-
-function computeRisk(e: BackendEnrollment): 'alto' | 'medio' | 'bajo' | null {
-  const nota = e.nota_parcial_1 != null ? Number(e.nota_parcial_1) : null
-  const asist = e.asistencia    != null ? Number(e.asistencia)    : null
-  if (nota == null && asist == null) return null
-  const score =
-    (nota  != null ? (nota  < 3 ? 2 : nota  < 3.5 ? 1 : 0) : 0) +
-    (asist != null ? (asist < 60 ? 2 : asist < 75 ? 1 : 0) : 0)
-  if (score >= 3) return 'alto'
-  if (score >= 1) return 'medio'
-  return 'bajo'
+// Risk per-enrollment is computed server-side; here we just aggregate counts.
+function computeRisk(_e: BackendEnrollment): 'alto' | 'medio' | 'bajo' | null {
+  return null
 }
 
 // ── Course card ───────────────────────────────────────────────────────────────
@@ -64,14 +56,12 @@ function CourseCard({ course, index, onClick }: CourseCardProps) {
 
   const total    = enrollments.length
   const atRisk   = enrollments.filter(e => computeRisk(e) === 'alto').length
-  const withData = enrollments.filter(
-    e => e.nota_parcial_1 != null || e.asistencia != null
-  ).length
+  const withData = enrollments.filter(e => e.status === 'ACTIVE').length
   const pct = total > 0 ? Math.round((withData / total) * 100) : 0
 
   return (
     <SubjectCard
-      course={course}
+      course={{ code: course.code, name: course.name, group: course.section ?? '', components: [] }}
       studentCount={total}
       completionPct={pct}
       atRiskCount={atRisk}
