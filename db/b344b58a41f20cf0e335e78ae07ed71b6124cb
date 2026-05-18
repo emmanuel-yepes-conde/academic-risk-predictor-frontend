@@ -1,0 +1,24 @@
+src/pages/Grades.tsx
+  s_b03b3a99345ebc::t_3d9735e6cf053d 307-308,318-329
+  s_b03b3a99345ebc::t_4a54f6d65e9192 574,582-608
+src/pages/AsistenciaEstudiante.tsx
+  s_b03b3a99345ebc::t_dab0b8dc7a8400 29-32,42-43,50,57-69
+  s_b03b3a99345ebc::t_74888eaf335a43 13
+  s_b03b3a99345ebc::t_208c1f22f64246 148-153,162,164-167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "dbb344b58a41f20cf0e335e78ae07ed71b6124cb",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
