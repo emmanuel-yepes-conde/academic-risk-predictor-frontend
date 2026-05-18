@@ -1,0 +1,21 @@
+src/lib/qrcode.ts
+  s_b03b3a99345ebc::t_1df91427cffd93 371-378
+src/components/QRCode.tsx
+  s_b03b3a99345ebc::t_0d7006a2c4e69e 2-3,6,15,19,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "71e7e8312e269a81a624bfe09eda8520a935c8eb",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
