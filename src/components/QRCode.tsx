@@ -1,11 +1,9 @@
 /**
- * QRCode — genera un QR code SVG completamente en cliente.
- * Sin llamadas a red, sin dependencias externas.
- * Usa el generador puro TypeScript en src/lib/qrcode.ts
+ * QRCode — genera QR via endpoint del backend (Python qrcode library).
+ * Produce PNGs perfectamente escaneables.
  */
 
-import { useMemo } from 'react'
-import { generateQRDataUri } from '../lib/qrcode'
+import { API_V1 } from '../config/env'
 
 interface Props {
   value: string
@@ -14,17 +12,16 @@ interface Props {
 }
 
 export default function QRCode({ value, size = 220, className = '' }: Props) {
-  // Genera el SVG en memoria — sincrónico, sin red
-  const dataUri = useMemo(() => generateQRDataUri(value, size), [value, size])
+  const src = `${API_V1}/attendance/qr?data=${encodeURIComponent(value)}&size=${size}`
 
   return (
     <img
-      src={dataUri}
+      src={src}
       alt="QR Code"
       width={size}
       height={size}
       className={`rounded-xl ${className}`}
-      style={{ imageRendering: 'crisp-edges', display: 'block' }}
+      style={{ display: 'block', imageRendering: 'crisp-edges' }}
     />
   )
 }

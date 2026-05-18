@@ -368,7 +368,14 @@ function makeQR(text: string, ecLevel = 1 /* M */): boolean[][] {
   return makeImpl(typeNumber, false, best)
 }
 
-// ─── Public API — generate SVG string ─────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/** Returns the raw boolean[][] module matrix — use this to render via canvas */
+export function getQRModules(text: string): boolean[][] {
+  return makeQR(text)
+}
+
+
 export function generateQRSvg(text: string, size = 220): string {
   const modules = makeQR(text)
   const count = modules.length
