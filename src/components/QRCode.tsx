@@ -24,7 +24,7 @@ export default function QRCode({ value, size = 220, className = '' }: Props) {
       width={size}
       height={size}
       className={`rounded-xl ${className}`}
-      style={{ imageRendering: 'pixelated' }}
+      style={{ imageRendering: 'crisp-edges', display: 'block' }}
     />
   )
 }

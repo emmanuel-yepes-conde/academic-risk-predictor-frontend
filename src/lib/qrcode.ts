@@ -372,8 +372,10 @@ function makeQR(text: string, ecLevel = 1 /* M */): boolean[][] {
 export function generateQRSvg(text: string, size = 220): string {
   const modules = makeQR(text)
   const count = modules.length
-  const cellSize = size / (count + 8) // 4-module quiet zone each side
-  const offset = cellSize * 4
+  // Use integer cell size — crisp pixels, no anti-aliasing on edges
+  const cellSize = Math.floor(size / (count + 8))
+  const actualSize = cellSize * (count + 8)
+  const offset = cellSize * 4 // 4-module quiet zone
 
   const rects: string[] = []
   for (let r = 0; r < count; r++) {
@@ -381,13 +383,13 @@ export function generateQRSvg(text: string, size = 220): string {
       if (modules[r][c]) {
         const x = offset + c * cellSize
         const y = offset + r * cellSize
-        rects.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${cellSize.toFixed(2)}" height="${cellSize.toFixed(2)}"/>`)
+        rects.push(`<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}"/>`)
       }
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" fill="white"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${actualSize}" height="${actualSize}" viewBox="0 0 ${actualSize} ${actualSize}" shape-rendering="crispEdges">
+  <rect width="${actualSize}" height="${actualSize}" fill="white"/>
   <g fill="black">${rects.join('')}</g>
 </svg>`
 }
