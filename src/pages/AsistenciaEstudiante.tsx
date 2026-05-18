@@ -10,7 +10,7 @@
  *   /asistencia/{sessionId}/{token}
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle2, XCircle, Loader2, QrCode, ArrowLeft } from 'lucide-react'
@@ -26,6 +26,10 @@ export default function AsistenciaEstudiante() {
   const [status, setStatus]   = useState<'loading' | 'success' | 'error' | 'idle'>('idle')
   const [message, setMessage] = useState('')
   const [sessionLabel, setSessionLabel] = useState('')
+  const [isTokenExpired, setIsTokenExpired] = useState(false)
+
+  // Evita que el useEffect dispare el registro dos veces si `user` cambia (ej. refresh del JWT)
+  const registrationAttempted = useRef(false)
 
   // Si llega con sessionId y token en la URL (deep-link del QR) → registrar automáticamente
   useEffect(() => {
@@ -35,19 +39,34 @@ export default function AsistenciaEstudiante() {
       navigate(`/login?redirect=/asistencia/${sessionId}/${token}`)
       return
     }
+    if (registrationAttempted.current) return
+    registrationAttempted.current = true
     register(sessionId, token)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, token, user])
 
   const register = async (sid: string, tok: string) => {
     setStatus('loading')
+    setIsTokenExpired(false)
     try {
       const res = await attendanceService.registerAttendance(sid, tok)
       setMessage(res.message)
       setSessionLabel(res.session_label ?? '')
       setStatus('success')
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Error desconocido')
+      const msg = e instanceof Error ? e.message : 'Error desconocido'
+      // 409 "Ya registraste" → el objetivo está cumplido, mostrar éxito
+      if (msg.toLowerCase().includes('ya registraste') || msg.toLowerCase().includes('ya registr')) {
+        setMessage('Tu asistencia ya estaba registrada en esta sesión.')
+        setSessionLabel('')
+        setStatus('success')
+        return
+      }
+      // Token expirado → no tiene sentido reintentar con el mismo token
+      if (msg.toLowerCase().includes('expir') || msg.toLowerCase().includes('inválido')) {
+        setIsTokenExpired(true)
+      }
+      setMessage(msg)
       setStatus('error')
     }
   }
@@ -126,6 +145,12 @@ export default function AsistenciaEstudiante() {
               No se pudo registrar
             </h2>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{message}</p>
+            {isTokenExpired && (
+              <p className="text-xs font-semibold rounded-lg px-3 py-2"
+                style={{ background: '#fef3c7', color: '#92400e' }}>
+                El código QR expiró. Pide al profesor que muestre el QR actualizado y escanéalo de nuevo.
+              </p>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={() => navigate(-1)}
@@ -134,9 +159,12 @@ export default function AsistenciaEstudiante() {
               >
                 <ArrowLeft size={13} /> Volver
               </button>
-              {sessionId && token && (
+              {sessionId && token && !isTokenExpired && (
                 <button
-                  onClick={() => register(sessionId, token)}
+                  onClick={() => {
+                    registrationAttempted.current = false
+                    register(sessionId, token)
+                  }}
                   className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white"
                   style={{ background: 'var(--green-accent)' }}
                 >

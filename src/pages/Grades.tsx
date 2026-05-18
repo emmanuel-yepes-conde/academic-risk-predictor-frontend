@@ -304,7 +304,8 @@ export default function GradesPage({
   }, [activeTab, attendanceLoadedCourseId, course.id, attendanceLoading, loadAttendance])
 
   useEffect(() => {
-    if (activeTab === 'qr-history' && sessionHistory.length === 0 && !sessionHistoryLoading && !sessionHistoryError) {
+    const needsHistory = activeTab === 'qr-history' || activeTab === 'attendance'
+    if (needsHistory && sessionHistory.length === 0 && !sessionHistoryLoading && !sessionHistoryError) {
       setSessionHistoryLoading(true)
       setSessionHistoryError(false)
       void attendanceService.getCourseSessionHistory(course.id)
@@ -313,6 +314,19 @@ export default function GradesPage({
         .finally(() => { setSessionHistoryLoading(false) })
     }
   }, [activeTab, course.id, sessionHistory.length, sessionHistoryLoading, sessionHistoryError])
+
+  // Estudiantes que ya registraron asistencia vía QR hoy → deshabilitar registro manual
+  const qrRegisteredToday = useMemo(() => {
+    const todayCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+    const ids = new Set<string>()
+    sessionHistory.forEach(sess => {
+      const sessDateCol = new Date(sess.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+      if (sessDateCol === todayCol) {
+        sess.attendees.forEach(att => ids.add(String(att.student_id)))
+      }
+    })
+    return ids
+  }, [sessionHistory])
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--canvas-warm)' }}>
@@ -557,6 +571,7 @@ export default function GradesPage({
                         const row = attendanceRows[student.id]
                         const counters = row?.counters[selectedAttendanceCohort] ?? { assist: 0, not_asist: 0 }
                         const isSaving = attendanceSavingStudentId === student.id
+                        const alreadyQR = qrRegisteredToday.has(student.id)
                         return (
                           <tr key={student.id} className="border-b border-usb-border last:border-b-0">
                             <td className="px-4 py-3 text-sm font-semibold text-usb-text">{student.name}</td>
@@ -564,26 +579,33 @@ export default function GradesPage({
                             <td className="px-4 py-3 text-sm font-bold text-emerald-700">{counters.assist}</td>
                             <td className="px-4 py-3 text-sm font-bold text-rose-700">{counters.not_asist}</td>
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => { void registerAttendance(student.id, true) }}
-                                  disabled={isSaving || !row?.enrollmentId}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                  style={{ borderColor: '#10b981', color: '#047857', background: '#ecfdf5' }}
-                                >
-                                  {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                                  Registrar asistencia
-                                </button>
-                                <button
-                                  onClick={() => { void registerAttendance(student.id, false) }}
-                                  disabled={isSaving || !row?.enrollmentId}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                  style={{ borderColor: '#ef4444', color: '#b91c1c', background: '#fef2f2' }}
-                                >
-                                  {isSaving ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
-                                  Registrar inasistencia
-                                </button>
-                              </div>
+                              {alreadyQR ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
+                                  style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac' }}>
+                                  <Check size={12} /> Registrado vía QR hoy
+                                </span>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => { void registerAttendance(student.id, true) }}
+                                    disabled={isSaving || !row?.enrollmentId}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ borderColor: '#10b981', color: '#047857', background: '#ecfdf5' }}
+                                  >
+                                    {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                    Registrar asistencia
+                                  </button>
+                                  <button
+                                    onClick={() => { void registerAttendance(student.id, false) }}
+                                    disabled={isSaving || !row?.enrollmentId}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ borderColor: '#ef4444', color: '#b91c1c', background: '#fef2f2' }}
+                                  >
+                                    {isSaving ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                                    Registrar inasistencia
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         )
