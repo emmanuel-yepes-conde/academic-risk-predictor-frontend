@@ -156,6 +156,12 @@ export default function GradesPage({
     [course.cuts, attendanceCutIndex],
   )
 
+  // ── Utilidad: interpreta strings de fecha del backend siempre como UTC ───────
+  // El backend devuelve "2026-05-19T03:28:07" sin 'Z'. Sin la Z el navegador
+  // lo trata como hora local → la hora Colombia queda mal convertida.
+  const toUTC = (s: string) =>
+    s.endsWith('Z') || s.includes('+') ? s : s + 'Z'
+
   // ── Carga notas desde el backend al montar la vista de un curso ──────────────
   // Esto sincroniza las notas guardadas en la BD con el estado local del profesor,
   // evitando que aparezcan vacías cuando se insertaron directamente en la BD.
@@ -394,7 +400,7 @@ export default function GradesPage({
     const todayCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
     const ids = new Set<string>()
     sessionHistory.forEach(sess => {
-      const sessDateCol = new Date(sess.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+      const sessDateCol = new Date(toUTC(sess.created_at)).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
       if (sessDateCol === todayCol) {
         sess.attendees.forEach(att => ids.add(String(att.student_id)))
       }
@@ -437,7 +443,39 @@ export default function GradesPage({
             Importar notas
           </button>
           <button
-            onClick={() => toast.info('Exportación', 'Disponible en versión con backend conectado.')}
+            onClick={() => {
+              // Construir CSV con estudiantes, notas por componente y total
+              const sep = ','
+              const headers = [
+                'Estudiante',
+                'Código',
+                ...course.components.map(c => `${c.name} (${c.percentage}%)`),
+                'Total',
+              ]
+              const rows = courseStudentsList.map(student => {
+                const compValues = course.components.map(c => {
+                  const v = gradeMap[student.id]?.[c.id]
+                  return v != null ? String(v) : ''
+                })
+                const total = totals[student.id]
+                return [
+                  student.name,
+                  student.studentCode,
+                  ...compValues,
+                  total != null ? String(total.toFixed(2)) : '',
+                ]
+              })
+              const csv = [headers, ...rows]
+                .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(sep))
+                .join('\n')
+              const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `notas_${course.code}_${course.group}_${new Date().toLocaleDateString('en-CA')}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
             className="flex items-center gap-1.5 text-xs font-semibold text-usb-muted border border-usb-border rounded-full px-3 py-1.5 transition-all"
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--green-accent)'; e.currentTarget.style.borderColor = 'var(--green-accent)' }}
             onMouseLeave={e => { e.currentTarget.style.color = ''; e.currentTarget.style.borderColor = '' }}
@@ -983,7 +1021,7 @@ export default function GradesPage({
                 <div className="space-y-2">
                   {sessionHistory.map(session => {
                     const isExpanded = expandedSessionId === session.id
-                    const startDate = new Date(session.created_at).toLocaleString('es-CO', {
+                    const startDate = new Date(toUTC(session.created_at)).toLocaleString('es-CO', {
                       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                       timeZone: 'America/Bogota',
                     })
@@ -1046,7 +1084,7 @@ export default function GradesPage({
                                 </thead>
                                 <tbody>
                                   {session.attendees.map((att, i) => {
-                                    const t = new Date(att.recorded_at).toLocaleTimeString('es-CO', {
+                                    const t = new Date(toUTC(att.recorded_at)).toLocaleTimeString('es-CO', {
                                       hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota',
                                     })
                                     return (
