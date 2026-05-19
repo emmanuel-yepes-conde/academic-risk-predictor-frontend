@@ -963,16 +963,16 @@ export default function MateriaDetalle() {
                     <p className="font-bold text-[0.92rem]" style={{ color: 'var(--text-dark)' }}>Nota definitiva</p>
                     <p className="text-xl font-extrabold"
                        style={{ color: gradeColor(gradesData.final_grade) }}>
-                      {gradesData.final_grade !== null ? Number(gradesData.final_grade).toFixed(1) : '—'}
+                      {gradesData.final_grade != null ? Number(gradesData.final_grade).toFixed(1) : '—'}
                       <span className="text-xs font-medium ml-1" style={{ color: 'var(--text-faint)' }}>/ 5.00</span>
                     </p>
                   </div>
 
                   {/* ¿Cuánto necesito sacar? */}
                   <GradoNecesario
-                    c1={gradesData.first_cohort_grade  !== undefined ? gradesData.first_cohort_grade  : null}
-                    c2={gradesData.second_cohort_grade !== undefined ? gradesData.second_cohort_grade : null}
-                    c3={gradesData.third_cohort_grade  !== undefined ? gradesData.third_cohort_grade  : null}
+                    c1={gradesData.first_cohort_grade  != null ? Number(gradesData.first_cohort_grade)  : null}
+                    c2={gradesData.second_cohort_grade != null ? Number(gradesData.second_cohort_grade) : null}
+                    c3={gradesData.third_cohort_grade  != null ? Number(gradesData.third_cohort_grade)  : null}
                   />
 
                   {(totalRiskError || cohortRiskError || totalRisk || (selectedCohort ? cohortRisks[selectedCohort] : null)) && (
