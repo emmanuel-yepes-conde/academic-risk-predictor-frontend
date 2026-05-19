@@ -604,7 +604,7 @@ export default function LoginPage() {
                     id="login-email"
                     type="email"
                     value={email}
-                    onChange={e => { setEmail(e.target.value.replace(/\s/g, '')); setError('') }}
+                    onChange={e => { setEmail(e.target.value.replace(/\s/g, '').toLowerCase()); setError('') }}
                     placeholder="correo@ejemplo.edu"
                     className="field"
                     autoFocus
