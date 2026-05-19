@@ -338,7 +338,12 @@ export default function AsistenciaProfesor() {
                               <span className="text-sm font-semibold" style={{ color: 'var(--text-dark)' }}>{a.student_name}</span>
                             </div>
                             <span className="text-[0.62rem] font-mono" style={{ color: 'var(--text-faint)' }}>
-                              {new Date(a.recorded_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'America/Bogota' })}
+                              {new Date(a.recorded_at.endsWith('Z') ? a.recorded_at : a.recorded_at + 'Z')
+                                .toLocaleString('es-CO', {
+                                  day: '2-digit', month: 'short',
+                                  hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                  timeZone: 'America/Bogota',
+                                })}
                             </span>
                           </motion.div>
                         ))}

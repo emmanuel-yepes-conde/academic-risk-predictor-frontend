@@ -45,9 +45,9 @@ export default function AsistenciaEstudiante() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, token, user])
 
-  const register = async (sid: string, tok: string) => {
+  const register = async (sid: string, tok: string, _isAutoRetry = false) => {
     setStatus('loading')
-    setIsTokenExpired(false)
+    if (!_isAutoRetry) setIsTokenExpired(false)
     try {
       const res = await attendanceService.registerAttendance(sid, tok)
       setMessage(res.message)
@@ -62,10 +62,16 @@ export default function AsistenciaEstudiante() {
         setStatus('success')
         return
       }
-      // Error de red (Failed to fetch / NetworkError): el backend pudo haber
-      // procesado la solicitud antes de que la conexión se cortara.
+      // Error de red: reintentar silenciosamente una vez.
+      // El backend puede haber procesado la solicitud antes de que la conexión se cortara;
+      // si el reintento devuelve 409 sabemos que sí quedó registrada.
       const isNetworkError = msg.toLowerCase().includes('failed to fetch')
         || msg.toLowerCase().includes('networkerror')
+      if (isNetworkError && !_isAutoRetry) {
+        await new Promise(r => setTimeout(r, 1500))
+        await register(sid, tok, true)
+        return
+      }
       if (isNetworkError) {
         setMessage('Problema de conexión. Es posible que tu asistencia sí quedara registrada — verifica con tu profesor.')
         setStatus('error')

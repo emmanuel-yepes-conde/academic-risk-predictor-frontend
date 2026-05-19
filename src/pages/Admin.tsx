@@ -11,7 +11,7 @@ import {
   Plus, X, LogOut, ShieldCheck, GraduationCap,
   Loader2, ChevronDown, ChevronUp, AlertCircle, Search,
   Pencil, Eye, Clock, History, CheckCircle2, XCircle,
-  ArrowLeft, Upload, Mail, MessageSquare, Filter,
+  ArrowLeft, Upload, Mail, MessageSquare, Filter, Zap,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -33,11 +33,12 @@ import type { Template } from '../services/templateService'
 import { friendlyError } from '../services/errorMessages'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../context/AuthContext'
+import JobsPanel from '../components/JobsPanel'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 // 'universidades' tab is hidden for now — code preserved for future feature
-type Tab = 'universidades' | 'programas' | 'usuarios' | 'templates'
+type Tab = 'universidades' | 'programas' | 'usuarios' | 'templates' | 'automatizaciones'
 
 const DEGREE_TYPES = ['PREG', 'POST', 'TEC'] as const
 type DegreeType = typeof DEGREE_TYPES[number]
@@ -3407,9 +3408,10 @@ function TemplatesTab() {
 
 // Universidades hidden — reserved for future feature
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
-  { key: 'programas',  label: 'Programas',  icon: BookOpen },
-  { key: 'usuarios',   label: 'Usuarios',   icon: Users },
-  { key: 'templates',  label: 'Templates',  icon: Mail },
+  { key: 'programas',       label: 'Programas',       icon: BookOpen },
+  { key: 'usuarios',        label: 'Usuarios',         icon: Users },
+  { key: 'templates',       label: 'Templates',        icon: Mail },
+  { key: 'automatizaciones', label: 'Automatizaciones', icon: Zap },
 ]
 
 export default function AdminPage() {
@@ -3506,10 +3508,11 @@ export default function AdminPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
           >
-            {activeTab === 'universidades' && <UniversidadesTab />}
-            {activeTab === 'programas'     && <ProgramasTab />}
-            {activeTab === 'usuarios'      && <UsuariosTab />}
-            {activeTab === 'templates'     && <TemplatesTab />}
+            {activeTab === 'universidades'    && <UniversidadesTab />}
+            {activeTab === 'programas'        && <ProgramasTab />}
+            {activeTab === 'usuarios'         && <UsuariosTab />}
+            {activeTab === 'templates'        && <TemplatesTab />}
+            {activeTab === 'automatizaciones' && <JobsPanel />}
           </motion.div>
         </AnimatePresence>
       </main>
