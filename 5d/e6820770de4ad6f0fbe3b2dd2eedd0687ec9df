@@ -1,0 +1,27 @@
+src/services/jobsService.ts
+  s_b03b3a99345ebc::t_5dd214e943f527 1-37
+src/components/JobsPanel.tsx
+  s_b03b3a99345ebc::t_886aa3c99f882b 1-386
+src/pages/Admin.tsx
+  s_b03b3a99345ebc::t_31a73dbb006b8f 3411-3414
+  s_b03b3a99345ebc::t_e194d02cbf1dae 36
+  s_b03b3a99345ebc::t_e638bdce387370 3511-3515
+  s_b03b3a99345ebc::t_84e3b01358f75d 14
+  s_b03b3a99345ebc::t_cd541e40b68dac 41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "5de6820770de4ad6f0fbe3b2dd2eedd0687ec9df",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
