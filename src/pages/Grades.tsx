@@ -156,6 +156,80 @@ export default function GradesPage({
     [course.cuts, attendanceCutIndex],
   )
 
+  // ── Carga notas desde el backend al montar la vista de un curso ──────────────
+  // Esto sincroniza las notas guardadas en la BD con el estado local del profesor,
+  // evitando que aparezcan vacías cuando se insertaron directamente en la BD.
+  useEffect(() => {
+    if (!courseStudentsList.length) return
+    let cancelled = false
+
+    const loadBackendGrades = async () => {
+      await Promise.allSettled(
+        courseStudentsList.map(async (student) => {
+          try {
+            const enrollment = await enrollmentService.findByCourse(student.id, course.id)
+            if (!enrollment) return
+            const gradeRead = await enrollmentService.getGrades(enrollment.id)
+            if (!gradeRead.grades || cancelled) return
+
+            // Extraer valores de nota del JSONB y mapearlos a componentId
+            COHORT_KEYS.forEach((cohortKey) => {
+              const cohort = gradeRead.grades![cohortKey] as Record<string, unknown> | undefined
+              if (!cohort) return
+
+              // Parcial
+              const parcial = cohort.parcial as Record<string, unknown> | undefined
+              if (parcial?.id && parcial.note != null) {
+                const componentId = String(parcial.id)
+                const value = Number(parcial.note)
+                if (
+                  Number.isFinite(value) &&
+                  course.components.some(c => c.id === componentId)
+                ) {
+                  // Solo poblar si el estado local no tiene un valor para este par
+                  const already = grades.find(
+                    g => g.studentId === student.id && g.componentId === componentId,
+                  )
+                  if (!already || already.value == null) {
+                    onUpdateGrade(student.id, componentId, value)
+                  }
+                }
+              }
+
+              // Seguimiento (actividades)
+              const seguimiento = cohort.seguimiento as Record<string, unknown> | undefined
+              if (seguimiento) {
+                Object.values(seguimiento).forEach((raw) => {
+                  const activity = raw as Record<string, unknown> | undefined
+                  if (!activity?.id || activity.note == null) return
+                  const componentId = String(activity.id)
+                  const value = Number(activity.note)
+                  if (
+                    Number.isFinite(value) &&
+                    course.components.some(c => c.id === componentId)
+                  ) {
+                    const already = grades.find(
+                      g => g.studentId === student.id && g.componentId === componentId,
+                    )
+                    if (!already || already.value == null) {
+                      onUpdateGrade(student.id, componentId, value)
+                    }
+                  }
+                })
+              }
+            })
+          } catch {
+            // Ignorar fallos individuales — no bloquear la UI
+          }
+        }),
+      )
+    }
+
+    void loadBackendGrades()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course.id, courseStudentsList.length])
+
   const handleImport = (imported: Grade[]) => {
     imported.forEach(g => {
       onUpdateGrade(g.studentId, g.componentId, g.value)
