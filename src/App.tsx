@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, Component, type ReactNode } from 'react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
 import LoginPage from './pages/Login'
@@ -84,6 +84,7 @@ function ProfessorDashboard() {
 
 function ProfessorGrades() {
   const navigate = useNavigate()
+  const { courseId: urlCourseId } = useParams<{ courseId: string }>()
   const { user, logout } = useAuth()
   const { courseList, grades, lastSaved, selectedCourseId, setSelectedCourseId, updateGrade, updateComponents, updateCuts, refreshCourses } = useGrades()
 
@@ -99,8 +100,20 @@ function ProfessorGrades() {
     }
   }, [user?.professorId, refreshCourses])
 
+  // Sync URL param → selectedCourseId whenever they diverge
+  useEffect(() => {
+    if (urlCourseId && urlCourseId !== selectedCourseId) {
+      setSelectedCourseId(urlCourseId)
+    }
+  }, [urlCourseId, selectedCourseId, setSelectedCourseId])
+
   const myCourses = courseList.filter(c => c.professorId === user?.professorId)
-  const activeCourse = myCourses.find(c => c.id === selectedCourseId) ?? myCourses[0] ?? null
+  // Prefer the URL param, then the context selection, then the first course
+  const activeCourse =
+    myCourses.find(c => c.id === urlCourseId) ??
+    myCourses.find(c => c.id === selectedCourseId) ??
+    myCourses[0] ??
+    null
 
   // Show a spinner while we wait for the initial fetch to complete
   if (!coursesReady) {
