@@ -62,6 +62,15 @@ export default function AsistenciaEstudiante() {
         setStatus('success')
         return
       }
+      // Error de red (Failed to fetch / NetworkError): el backend pudo haber
+      // procesado la solicitud antes de que la conexión se cortara.
+      const isNetworkError = msg.toLowerCase().includes('failed to fetch')
+        || msg.toLowerCase().includes('networkerror')
+      if (isNetworkError) {
+        setMessage('Problema de conexión. Es posible que tu asistencia sí quedara registrada — verifica con tu profesor.')
+        setStatus('error')
+        return
+      }
       // Token expirado → no tiene sentido reintentar con el mismo token
       if (msg.toLowerCase().includes('expir') || msg.toLowerCase().includes('inválido')) {
         setIsTokenExpired(true)

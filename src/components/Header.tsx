@@ -506,6 +506,7 @@ export default function Header({ lastSaved, subtitle }: Props) {
             {/* Tour help */}
             <Tooltip content="Repetir tour" placement="bottom">
               <button
+                id="tour-header-help"
                 onClick={() => window.dispatchEvent(new Event('ar:start-tour'))}
                 aria-label="Repetir tour de bienvenida"
                 className="p-2 text-white/30 hover:text-white/70 hover:bg-white/08 rounded-xl transition-colors no-tap"

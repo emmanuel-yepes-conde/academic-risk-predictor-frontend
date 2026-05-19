@@ -156,6 +156,86 @@ export default function GradesPage({
     [course.cuts, attendanceCutIndex],
   )
 
+  // ── Utilidad: interpreta strings de fecha del backend siempre como UTC ───────
+  // El backend devuelve "2026-05-19T03:28:07" sin 'Z'. Sin la Z el navegador
+  // lo trata como hora local → la hora Colombia queda mal convertida.
+  const toUTC = (s: string) =>
+    s.endsWith('Z') || s.includes('+') ? s : s + 'Z'
+
+  // ── Carga notas desde el backend al montar la vista de un curso ──────────────
+  // Esto sincroniza las notas guardadas en la BD con el estado local del profesor,
+  // evitando que aparezcan vacías cuando se insertaron directamente en la BD.
+  useEffect(() => {
+    if (!courseStudentsList.length) return
+    let cancelled = false
+
+    const loadBackendGrades = async () => {
+      await Promise.allSettled(
+        courseStudentsList.map(async (student) => {
+          try {
+            const enrollment = await enrollmentService.findByCourse(student.id, course.id)
+            if (!enrollment) return
+            const gradeRead = await enrollmentService.getGrades(enrollment.id)
+            if (!gradeRead.grades || cancelled) return
+
+            // Extraer valores de nota del JSONB y mapearlos a componentId
+            COHORT_KEYS.forEach((cohortKey) => {
+              const cohort = gradeRead.grades![cohortKey] as Record<string, unknown> | undefined
+              if (!cohort) return
+
+              // Parcial
+              const parcial = cohort.parcial as Record<string, unknown> | undefined
+              if (parcial?.id && parcial.note != null) {
+                const componentId = String(parcial.id)
+                const value = Number(parcial.note)
+                if (
+                  Number.isFinite(value) &&
+                  course.components.some(c => c.id === componentId)
+                ) {
+                  // Solo poblar si el estado local no tiene un valor para este par
+                  const already = grades.find(
+                    g => g.studentId === student.id && g.componentId === componentId,
+                  )
+                  if (!already || already.value == null) {
+                    onUpdateGrade(student.id, componentId, value)
+                  }
+                }
+              }
+
+              // Seguimiento (actividades)
+              const seguimiento = cohort.seguimiento as Record<string, unknown> | undefined
+              if (seguimiento) {
+                Object.values(seguimiento).forEach((raw) => {
+                  const activity = raw as Record<string, unknown> | undefined
+                  if (!activity?.id || activity.note == null) return
+                  const componentId = String(activity.id)
+                  const value = Number(activity.note)
+                  if (
+                    Number.isFinite(value) &&
+                    course.components.some(c => c.id === componentId)
+                  ) {
+                    const already = grades.find(
+                      g => g.studentId === student.id && g.componentId === componentId,
+                    )
+                    if (!already || already.value == null) {
+                      onUpdateGrade(student.id, componentId, value)
+                    }
+                  }
+                })
+              }
+            })
+          } catch {
+            // Ignorar fallos individuales — no bloquear la UI
+          }
+        }),
+      )
+    }
+
+    void loadBackendGrades()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course.id, courseStudentsList.length])
+
   const handleImport = (imported: Grade[]) => {
     imported.forEach(g => {
       onUpdateGrade(g.studentId, g.componentId, g.value)
@@ -320,7 +400,7 @@ export default function GradesPage({
     const todayCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
     const ids = new Set<string>()
     sessionHistory.forEach(sess => {
-      const sessDateCol = new Date(sess.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+      const sessDateCol = new Date(toUTC(sess.created_at)).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
       if (sessDateCol === todayCol) {
         sess.attendees.forEach(att => ids.add(String(att.student_id)))
       }
@@ -363,7 +443,39 @@ export default function GradesPage({
             Importar notas
           </button>
           <button
-            onClick={() => toast.info('Exportación', 'Disponible en versión con backend conectado.')}
+            onClick={() => {
+              // Construir CSV con estudiantes, notas por componente y total
+              const sep = ','
+              const headers = [
+                'Estudiante',
+                'Código',
+                ...course.components.map(c => `${c.name} (${c.percentage}%)`),
+                'Total',
+              ]
+              const rows = courseStudentsList.map(student => {
+                const compValues = course.components.map(c => {
+                  const v = gradeMap[student.id]?.[c.id]
+                  return v != null ? String(v) : ''
+                })
+                const total = totals[student.id]
+                return [
+                  student.name,
+                  student.studentCode,
+                  ...compValues,
+                  total != null ? String(total.toFixed(2)) : '',
+                ]
+              })
+              const csv = [headers, ...rows]
+                .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(sep))
+                .join('\n')
+              const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `notas_${course.code}_${course.group}_${new Date().toLocaleDateString('en-CA')}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
             className="flex items-center gap-1.5 text-xs font-semibold text-usb-muted border border-usb-border rounded-full px-3 py-1.5 transition-all"
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--green-accent)'; e.currentTarget.style.borderColor = 'var(--green-accent)' }}
             onMouseLeave={e => { e.currentTarget.style.color = ''; e.currentTarget.style.borderColor = '' }}
@@ -909,7 +1021,7 @@ export default function GradesPage({
                 <div className="space-y-2">
                   {sessionHistory.map(session => {
                     const isExpanded = expandedSessionId === session.id
-                    const startDate = new Date(session.created_at).toLocaleString('es-CO', {
+                    const startDate = new Date(toUTC(session.created_at)).toLocaleString('es-CO', {
                       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                       timeZone: 'America/Bogota',
                     })
@@ -972,7 +1084,7 @@ export default function GradesPage({
                                 </thead>
                                 <tbody>
                                   {session.attendees.map((att, i) => {
-                                    const t = new Date(att.recorded_at).toLocaleTimeString('es-CO', {
+                                    const t = new Date(toUTC(att.recorded_at)).toLocaleTimeString('es-CO', {
                                       hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota',
                                     })
                                     return (

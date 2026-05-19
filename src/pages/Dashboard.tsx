@@ -7,13 +7,36 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BookOpen, RefreshCw } from 'lucide-react'
+import type { Step } from 'react-joyride'
 import { useAuth } from '../context/AuthContext'
 import Header from '../components/Header'
 import SubjectCard from '../components/SubjectCard'
+import TourGuide from '../components/TourGuide'
 import { useTour } from '../hooks/useTour'
 import DocumentUploadModal from '../components/DocumentUploadModal'
 import { courseService, type BackendCourse } from '../services/courseService'
 import { enrollmentService, type BackendEnrollment } from '../services/enrollmentService'
+
+const TOUR_STEPS: Step[] = [
+  {
+    target: '#tour-dashboard-greeting',
+    title: '👋 Tu panel de docente',
+    content: 'Aquí verás todas las materias que tienes asignadas en el período activo.',
+    placement: 'bottom',
+  },
+  {
+    target: '#tour-dashboard-courses',
+    title: '📚 Tus materias',
+    content: 'Haz clic en cualquier tarjeta para abrir el libro de notas, registrar asistencia y ver el riesgo de cada estudiante.',
+    placement: 'top',
+  },
+  {
+    target: '#tour-header-help',
+    title: '❓ ¿Necesitas ayuda?',
+    content: 'Puedes repetir este recorrido en cualquier momento desde el botón "?" del encabezado.',
+    placement: 'bottom',
+  },
+]
 
 // ── risk helpers ──────────────────────────────────────────────────────────────
 // Risk per-enrollment is computed server-side; here we just aggregate counts.
@@ -113,6 +136,7 @@ export default function Dashboard() {
 
         {/* Welcome */}
         <motion.div
+          id="tour-dashboard-greeting"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
@@ -190,7 +214,7 @@ export default function Dashboard() {
               </span>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div id="tour-dashboard-courses" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {courses.map((course, i) => (
                 <CourseCard
                   key={course.id}
@@ -211,6 +235,8 @@ export default function Dashboard() {
         courseName={uploadCourse?.name ?? ''}
         onClose={() => setUploadCourse(null)}
       />
+
+      <TourGuide run={run} steps={TOUR_STEPS} onEnd={onTourEnd} />
     </div>
   )
 }
