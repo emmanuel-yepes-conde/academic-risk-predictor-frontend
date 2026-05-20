@@ -58,6 +58,8 @@ export interface EnrollmentRiskRead {
     estudiante: number[]
     promedio_aprobado: number[]
   }
+  is_partial?: boolean
+  cortes_disponibles?: number
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────

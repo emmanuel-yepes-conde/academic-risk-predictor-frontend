@@ -50,8 +50,14 @@ function TestModal({ job, onClose, onToast }: { job: JobConfig; onClose: () => v
   const [phone, setPhone]     = useState('')
   const [sending, setSending] = useState(false)
 
+  const hasEmail    = job.channels.includes('email')
+  const hasWhatsApp = job.channels.includes('whatsapp')
+  const onlyInapp   = !hasEmail && !hasWhatsApp
+
+  const canSend = onlyInapp || email.trim() !== '' || phone.trim() !== ''
+
   const send = async () => {
-    if (!email.trim() && !phone.trim()) return
+    if (!canSend) return
     setSending(true)
     try {
       const res = await jobsService.test(job.id, email.trim() || undefined, phone.trim() || undefined)
@@ -86,38 +92,61 @@ function TestModal({ job, onClose, onToast }: { job: JobConfig; onClose: () => v
           </button>
         </div>
 
-        <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-          Ingresa al menos un canal. Se enviará una notificación de prueba real.
-        </p>
+        {onlyInapp ? (
+          <p className="text-xs mb-4 leading-relaxed px-3 py-2 rounded-xl"
+            style={{ background: 'rgba(124,58,237,0.07)', color: '#6d28d9', border: '1px solid rgba(124,58,237,0.18)' }}>
+            Este job solo genera notificaciones in-app. Se enviará una al usuario de prueba sin necesitar canales externos.
+          </p>
+        ) : (
+          <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            Rellena los canales que quieras probar. Puedes dejar cualquiera en blanco.
+          </p>
+        )}
 
-        <div className="space-y-3">
-          <div>
-            <label className="text-[0.68rem] font-bold uppercase tracking-wider mb-1 flex items-center gap-1"
-              style={{ color: 'var(--text-faint)' }}>
-              <Mail size={11} /> Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              className="w-full px-3 py-2 text-xs border border-usb-border rounded-xl focus:outline-none focus:border-green-accent transition-colors"
-            />
+        {!onlyInapp && (
+          <div className="space-y-3">
+            {hasEmail && (
+              <div>
+                <label className="text-[0.68rem] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5"
+                  style={{ color: 'var(--text-faint)' }}>
+                  <Mail size={11} />
+                  <span>Email</span>
+                  <span className="normal-case font-normal text-[0.60rem] px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--text-faint)' }}>opcional</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  className="w-full px-3 py-2 text-xs border border-usb-border rounded-xl focus:outline-none transition-colors"
+                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(0,117,74,0.4)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = '')}
+                />
+              </div>
+            )}
+            {hasWhatsApp && (
+              <div>
+                <label className="text-[0.68rem] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5"
+                  style={{ color: 'var(--text-faint)' }}>
+                  <Phone size={11} />
+                  <span>WhatsApp</span>
+                  <span className="normal-case font-normal text-[0.60rem] px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--text-faint)' }}>opcional</span>
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+57 300 123 4567"
+                  className="w-full px-3 py-2 text-xs border border-usb-border rounded-xl focus:outline-none transition-colors"
+                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(0,117,74,0.4)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = '')}
+                />
+              </div>
+            )}
           </div>
-          <div>
-            <label className="text-[0.68rem] font-bold uppercase tracking-wider mb-1 flex items-center gap-1"
-              style={{ color: 'var(--text-faint)' }}>
-              <Phone size={11} /> WhatsApp (sin +57)
-            </label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="3001234567"
-              className="w-full px-3 py-2 text-xs border border-usb-border rounded-xl focus:outline-none focus:border-green-accent transition-colors"
-            />
-          </div>
-        </div>
+        )}
 
         <div className="flex gap-2 mt-5">
           <button onClick={onClose}
@@ -126,7 +155,7 @@ function TestModal({ job, onClose, onToast }: { job: JobConfig; onClose: () => v
           </button>
           <button
             onClick={() => void send()}
-            disabled={sending || (!email.trim() && !phone.trim())}
+            disabled={sending || !canSend}
             className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-opacity disabled:opacity-50"
             style={{ background: '#d97706' }}
           >

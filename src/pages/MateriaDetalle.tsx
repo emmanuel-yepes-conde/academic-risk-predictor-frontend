@@ -12,7 +12,7 @@ import {
   ArrowLeft, BookOpen, Hash, Calendar, Loader2, AlertCircle,
   GraduationCap, Award, ChevronDown, Sliders, QrCode,
   Target, CheckCircle2, XCircle, CalendarCheck, Clock, Bot,
-  Calculator, X, Sparkles,
+  Calculator, X, Sparkles, RefreshCw,
 } from 'lucide-react'
 import {
   Chart as ChartJS, ArcElement, BarElement, CategoryScale, LinearScale,
@@ -39,11 +39,20 @@ import { useAuth } from '../context/AuthContext'
 
 // ─── Tour ────────────────────────────────────────────────────────────────────
 
-const TOUR_STEPS: Step[] = [
-  { target: '#tour-materia-header', title: '📚 Tu materia',         content: 'Nombre, código, créditos y período del curso.',                                         placement: 'bottom' },
-  { target: '#tour-materia-tabs',   title: '📋 Secciones del curso', content: 'Navega entre Predicción IA, tus notas y tu historial de asistencia.',                  placement: 'bottom' },
-  { target: '#tour-materia-chat',   title: '🤖 Asistente Risko',    content: 'Pregúntale sobre tus notas, el contenido del curso o tu predicción de riesgo.',        placement: 'left'   },
-]
+// Steps are built dynamically inside the component so we can adapt to screen size.
+// On desktop (≥1024 px) we target the sticky chat panel; on mobile we target the FAB.
+function buildTourSteps(): Step[] {
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024
+  return [
+    { target: '#tour-materia-header', title: '📚 Tu materia',          content: 'Nombre, código, créditos y período del curso.',                                        placement: 'bottom' },
+    { target: '#tour-materia-tabs',   title: '📋 Secciones del curso',  content: 'Navega entre Predicción IA, tus notas y tu historial de asistencia.',                 placement: 'bottom' },
+    { target: isDesktop ? '#tour-materia-chat' : '#tour-chat-fab',
+      title: '🤖 Asistente Risko',
+      content: 'Pregúntale sobre tus notas, el contenido del curso o tu predicción de riesgo.',
+      placement: isDesktop ? 'left' : 'top',
+    },
+  ]
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +64,8 @@ interface PredictionResult {
   porcentaje_riesgo: number
   nivel_riesgo: 'BAJO' | 'MEDIO' | 'ALTO'
   analisis_ia: string
+  is_partial?: boolean
+  cortes_disponibles?: number
   datos_radar: {
     labels: string[]
     estudiante: number[]
@@ -184,6 +195,8 @@ function normalizeRiskError(raw: string, scope: 'total' | 'cohort', cohort?: Coh
     .replace(/second_cohort/g, 'Corte 2')
     .replace(/third_cohort/g, 'Corte 3')
   if (scope === 'total') {
+    if (msg.toLowerCase().includes('aún no hay calificaciones') || msg.toLowerCase().includes('no hay calificaciones'))
+      return 'Tu docente aún no ha registrado calificaciones para este curso. El predictor se activará cuando haya al menos una nota.'
     if (msg.toLowerCase().includes('faltan notas por cohorte'))
       return 'Para calcular el riesgo total deben estar registradas las notas de los 3 cortes y la nota definitiva.'
     if (msg.toLowerCase().includes('consentimiento'))
@@ -253,7 +266,7 @@ function GradoNecesario({ c1, c2, c3 }: { c1: number | null; c2: number | null; 
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold" style={{ color: 'var(--text-faint)' }}>Meta:</span>
           <input type="range" min={1.0} max={5.0} step={0.1} value={target}
-                 onChange={e => setTarget(Number(e.target.value))} className="w-24 accent-green-600" />
+                 onChange={e => setTarget(Number(e.target.value))} className="w-24 accent-green-600 align-middle" />
           <span className="text-sm font-extrabold w-8 text-right" style={{ color: statusColor }}>{target.toFixed(1)}</span>
         </div>
       </div>
@@ -802,6 +815,45 @@ export default function MateriaDetalle() {
 
     return (
       <div className="space-y-4">
+        {/* Top bar: recalculate + math detail button (above charts) */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <button
+            onClick={() => void calculateTotalRisk()}
+            disabled={totalRiskLoading}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            style={{ background: 'rgba(0,117,74,0.08)', color: 'var(--green-accent)', border: '1px solid rgba(0,117,74,0.15)' }}
+          >
+            {totalRiskLoading
+              ? <Loader2 size={12} className="animate-spin" />
+              : <RefreshCw size={12} />}
+            Recalcular
+          </button>
+          {predictionResult.detalles_matematicos && (
+            <button
+              onClick={() => setShowMathModal(true)}
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+              style={{ background: 'rgba(0,117,74,0.08)', color: 'var(--green-accent)', border: '1px solid rgba(0,117,74,0.15)' }}
+            >
+              <Calculator size={12} />
+              ¿Cómo calculamos esto?
+            </button>
+          )}
+        </div>
+
+        {/* Predicción parcial — aviso cuando faltan cortes */}
+        {predictionResult.is_partial && (
+          <div
+            className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl"
+            style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)' }}
+          >
+            <AlertCircle size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#b45309' }} />
+            <p className="text-xs font-semibold leading-snug" style={{ color: '#92400e' }}>
+              Predicción con datos parciales — {predictionResult.cortes_disponibles ?? '?'} de 3 cortes disponibles.
+              Los cortes faltantes se estimaron con el promedio actual. El resultado mejorará al registrar más notas.
+            </p>
+          </div>
+        )}
+
         {/* Gauge + badge integrados */}
         <div className="flex flex-col items-center">
           <div className="w-full max-w-[220px]">
@@ -815,20 +867,6 @@ export default function MateriaDetalle() {
             {meta.label}
           </span>
         </div>
-
-        {/* Math modal button */}
-        {predictionResult.detalles_matematicos && (
-          <div className="flex justify-center">
-            <button
-              onClick={() => setShowMathModal(true)}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
-              style={{ background: 'rgba(0,117,74,0.08)', color: 'var(--green-accent)', border: '1px solid rgba(0,117,74,0.15)' }}
-            >
-              <Calculator size={12} />
-              ¿Cómo calculamos esto?
-            </button>
-          </div>
-        )}
 
         {/* Radar */}
         {predictionResult.datos_radar && (
@@ -877,7 +915,7 @@ export default function MateriaDetalle() {
   return (
     <div className="min-h-screen bg-usb-canvas flex flex-col">
       <Header />
-      <TourGuide run={run} steps={TOUR_STEPS} onEnd={onTourEnd} />
+      <TourGuide run={run} steps={buildTourSteps()} onEnd={onTourEnd} />
 
       {/* Math modal */}
       <AnimatePresence>
@@ -1287,8 +1325,8 @@ export default function MateriaDetalle() {
             {/* ── RIGHT PANEL — Desktop Chat ── */}
             <div
               id="tour-materia-chat"
-              className="hidden lg:flex flex-col lg:w-80 xl:w-96 lg:sticky lg:top-24"
-              style={{ alignSelf: 'flex-start' }}
+              className="hidden lg:flex flex-col lg:w-96 xl:w-[420px] lg:sticky lg:top-24"
+              style={{ alignSelf: 'flex-start', height: 'calc(100vh - 6rem)', maxHeight: '780px' }}
             >
               <CourseChat
                 courseId={courseId ?? ''}
@@ -1305,6 +1343,7 @@ export default function MateriaDetalle() {
       {!loadingCourse && !courseError && course && (
         <>
           <button
+            id="tour-chat-fab"
             onClick={() => setChatOpen(true)}
             className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95"
             style={{ background: 'var(--green-accent)', boxShadow: '0 4px 16px rgba(0,117,74,0.35)' }}

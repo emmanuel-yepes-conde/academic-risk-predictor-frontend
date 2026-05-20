@@ -19,7 +19,16 @@ import {
   Award, Clock, BookMarked,
 } from 'lucide-react'
 import Header from '../components/Header'
+import TourGuide from '../components/TourGuide'
+import { type Step } from 'react-joyride'
+import { useTour } from '../hooks/useTour'
 import { useAuth } from '../context/AuthContext'
+
+const MIS_MATERIAS_TOUR_STEPS: Step[] = [
+  { target: '#tour-mis-materias-hero',   title: '👤 Tu perfil académico',  content: 'Aquí ves tu nombre, programa y tu avance de créditos en el semestre.',         placement: 'bottom' },
+  { target: '#tour-mis-materias-stats',  title: '📊 Resumen académico',    content: 'Un vistazo rápido a tus materias, créditos activos y créditos aprobados.',       placement: 'bottom' },
+  { target: '#tour-mis-materias-cursos', title: '📚 Tus materias activas', content: 'Haz clic en cualquier materia para ver predicción IA, notas y asistencias.',    placement: 'top'    },
+]
 import { enrollmentService, type BackendEnrollment } from '../services/enrollmentService'
 import { courseService, type BackendCourse } from '../services/courseService'
 import { programService, type BackendProgram } from '../services/programService'
@@ -118,6 +127,7 @@ export default function MisMaterias() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const studentId = user?.studentId ?? user?.id ?? ''
+  const { run, onTourEnd } = useTour('student-mis-materias', user?.id)
 
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string | null>(null)
@@ -255,9 +265,11 @@ export default function MisMaterias() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--canvas-warm)' }}>
       <Header />
+      <TourGuide run={run} steps={MIS_MATERIAS_TOUR_STEPS} onEnd={onTourEnd} />
 
       {/* ── Profile Hero ──────────────────────────────────────────────────────── */}
       <div
+        id="tour-mis-materias-hero"
         className="relative overflow-hidden"
         style={{ background: 'var(--green-deep)', borderBottom: '1px solid rgba(0,0,0,0.25)' }}
       >
@@ -436,7 +448,7 @@ export default function MisMaterias() {
         {!loading && !error && !noAccess && groups.length > 0 && (
           <>
             {/* Stat cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+            <div id="tour-mis-materias-stats" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
               {statCards.map((stat, i) => (
                 <motion.div
                   key={stat.label}
@@ -463,7 +475,7 @@ export default function MisMaterias() {
             </div>
 
             {/* Course groups */}
-            <div className="space-y-8">
+            <div id="tour-mis-materias-cursos" className="space-y-8">
               {groups.map((group, gi) => (
                 <motion.div
                   key={group.programId}
