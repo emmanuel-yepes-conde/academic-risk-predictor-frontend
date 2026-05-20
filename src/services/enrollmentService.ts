@@ -136,7 +136,8 @@ export const enrollmentService = {
     return api.post<CohortRiskRead>(`/enrollments/${enrollmentId}/risk/cohort?cohort_key=${cohortKey}`, {})
   },
 
-  async getTotalRisk(enrollmentId: string): Promise<EnrollmentRiskRead> {
-    return api.post<EnrollmentRiskRead>(`/enrollments/${enrollmentId}/risk`, {})
+  async getTotalRisk(enrollmentId: string, notify = false): Promise<EnrollmentRiskRead> {
+    const qs = notify ? '?notify=true' : ''
+    return api.post<EnrollmentRiskRead>(`/enrollments/${enrollmentId}/risk${qs}`, {})
   },
 }

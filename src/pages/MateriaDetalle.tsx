@@ -689,12 +689,12 @@ export default function MateriaDetalle() {
     }
   }, [user?.studentId, courseId])
 
-  const calculateTotalRisk = useCallback(async () => {
+  const calculateTotalRisk = useCallback(async (notify = false) => {
     if (!enrollmentId) return
     setTotalRiskLoading(true)
     setTotalRiskError(null)
     try {
-      const total = await enrollmentService.getTotalRisk(enrollmentId)
+      const total = await enrollmentService.getTotalRisk(enrollmentId, notify)
       setTotalRisk(total)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo calcular el riesgo en este momento.'
@@ -741,13 +741,6 @@ export default function MateriaDetalle() {
     })
   }, [courseId])
 
-  // Auto-run predictor when grades + enrollmentId are ready and totalRisk is null
-  useEffect(() => {
-    if (gradesData && enrollmentId && totalRisk === null && !totalRiskLoading && !totalRiskError) {
-      void calculateTotalRisk()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gradesData, enrollmentId])
 
   // ── Predicción tab content ────────────────────────────────────────────────────
 
@@ -804,9 +797,37 @@ export default function MateriaDetalle() {
 
     if (!totalRisk || !predictionResult) {
       return (
-        <div className="flex flex-col items-center justify-center py-14 gap-3">
-          <Loader2 size={24} className="animate-spin" style={{ color: 'var(--green-accent)' }} />
-          <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Calculando predicción…</p>
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{ background: 'rgba(0,117,74,0.07)', border: '1.5px solid rgba(0,117,74,0.14)' }}
+          >
+            <GraduationCap size={28} style={{ color: 'var(--green-accent)' }} />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-base mb-1" style={{ color: 'var(--text-dark)' }}>
+              ¿Cómo va tu riesgo académico?
+            </p>
+            <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-faint)' }}>
+              Analizamos tus calificaciones con IA para estimar tu probabilidad de reprobar.
+              Recibirás una notificación con el resultado si detectamos riesgo.
+            </p>
+          </div>
+          <button
+            onClick={() => void calculateTotalRisk(true)}
+            disabled={totalRiskLoading}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+            style={{
+              background: 'var(--green-accent)',
+              color: 'white',
+              boxShadow: '0 4px 14px rgba(0,117,74,0.28)',
+            }}
+          >
+            {totalRiskLoading
+              ? <Loader2 size={15} className="animate-spin" />
+              : <Sparkles size={15} />}
+            Calcular predicción
+          </button>
         </div>
       )
     }

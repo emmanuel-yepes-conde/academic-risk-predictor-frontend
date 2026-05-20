@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ArrowLeft, User, Phone, Bell, Mail, MessageCircle,
+  ArrowLeft, User, Bell, Mail, MessageCircle,
   Save, Loader2, CheckCircle2, AlertCircle,
 } from 'lucide-react'
 import Header from '../components/Header'
@@ -23,9 +23,17 @@ export default function Perfil() {
 
   // Editable fields
   const [fullName, setFullName]               = useState('')
-  const [phone, setPhone]                     = useState('')
+  const [phone, setPhone]                     = useState('')   // solo 10 dígitos, sin +57
   const [whatsappEnabled, setWhatsappEnabled] = useState(true)
   const [emailEnabled, setEmailEnabled]       = useState(true)
+
+  /** Extrae los 10 dígitos colombianos de un número almacenado (+573XXXXXXXXX o 573XXXXXXXXX) */
+  function extractLocalDigits(raw: string): string {
+    const clean = raw.replace(/\D/g, '') // solo dígitos
+    if (clean.startsWith('57') && clean.length === 12) return clean.slice(2) // quitar 57
+    if (clean.length === 10) return clean
+    return clean // si tiene otro formato, devolver limpio
+  }
 
   useEffect(() => {
     void (async () => {
@@ -35,7 +43,7 @@ export default function Perfil() {
         const p = await profileService.get()
         setProfile(p)
         setFullName(p.full_name ?? '')
-        setPhone(p.phone ?? '')
+        setPhone(p.phone ? extractLocalDigits(p.phone) : '')
         setWhatsappEnabled(p.whatsapp_enabled)
         setEmailEnabled(p.email_enabled)
       } catch {
@@ -50,14 +58,19 @@ export default function Perfil() {
     setSaving(true)
     setError(null)
     setSaved(false)
+    // Construir número completo: +57 + 10 dígitos
+    const digits = phone.replace(/\D/g, '').slice(0, 10)
+    const fullPhone = digits.length === 10 ? `+57${digits}` : digits.length > 0 ? `+57${digits}` : null
     try {
       const updated = await profileService.update({
         full_name: fullName.trim() || undefined,
-        phone: phone.trim() || null,
+        phone: fullPhone,
         whatsapp_enabled: whatsappEnabled,
         email_enabled: emailEnabled,
       })
       setProfile(updated)
+      // Actualizar campo phone con los dígitos limpios del número guardado
+      if (updated.phone) setPhone(extractLocalDigits(updated.phone))
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch {
@@ -193,25 +206,40 @@ export default function Perfil() {
                        style={{ color: 'var(--text-faint)' }}>
                   Número de WhatsApp
                 </label>
-                <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 transition-all"
-                     style={{
-                       background: 'var(--canvas-warm)',
-                       border: '1.5px solid rgba(0,0,0,0.10)',
-                     }}
-                     onFocus={() => {}}
+                <div
+                  className="flex items-center rounded-xl overflow-hidden transition-all"
+                  style={{ border: '1.5px solid rgba(0,0,0,0.10)', background: 'var(--canvas-warm)' }}
+                  onFocus={() => {}}
                 >
-                  <MessageCircle size={14} style={{ color: '#25d366' }} />
+                  {/* Prefijo fijo +57 */}
+                  <div
+                    className="flex items-center gap-1.5 px-3 py-2.5 flex-shrink-0 select-none"
+                    style={{ background: 'rgba(0,0,0,0.05)', borderRight: '1.5px solid rgba(0,0,0,0.08)' }}
+                  >
+                    <MessageCircle size={13} style={{ color: '#25d366' }} />
+                    <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>+57</span>
+                  </div>
                   <input
                     type="tel"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    placeholder="+57 300 000 0000"
-                    className="flex-1 bg-transparent text-sm font-medium outline-none"
+                    onChange={e => {
+                      // Solo dígitos, máximo 10
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                      setPhone(digits)
+                    }}
+                    placeholder="300 000 0000"
+                    maxLength={10}
+                    className="flex-1 bg-transparent text-sm font-medium outline-none px-3 py-2.5"
                     style={{ color: 'var(--text-dark)' }}
                   />
+                  {phone.length === 10 && (
+                    <div className="pr-3 flex-shrink-0">
+                      <CheckCircle2 size={15} className="text-green-500" />
+                    </div>
+                  )}
                 </div>
                 <p className="text-[0.65rem]" style={{ color: 'var(--text-faint)' }}>
-                  Incluye el código de país, ej: +57 310 234 5678
+                  Solo el número colombiano (10 dígitos), sin código de país. Ej: 3126226684
                 </p>
               </div>
 
