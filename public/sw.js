@@ -1,8 +1,5 @@
 // ─── Academic Risk — Service Worker ──────────────────────────────────────────
-// Maneja push notifications y caché offline básico
-
-// Placeholder para que VitePWA inyecte el manifest de precaché
-self.__WB_MANIFEST
+// Maneja push notifications web (VAPID).
 
 // ─── Push Notification handler ────────────────────────────────────────────────
 self.addEventListener('push', event => {

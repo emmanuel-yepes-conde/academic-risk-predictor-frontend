@@ -34,4 +34,8 @@ export const jobsService = {
   trigger(id: string): Promise<{ ok: boolean; message: string }> {
     return api.post<{ ok: boolean; message: string }>(`/admin/jobs/${id}/trigger`, {})
   },
+
+  test(id: string, email?: string, phone?: string): Promise<{ ok: boolean; message: string }> {
+    return api.post<{ ok: boolean; message: string }>(`/admin/jobs/${id}/test`, { email, phone })
+  },
 }

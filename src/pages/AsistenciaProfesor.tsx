@@ -97,6 +97,10 @@ export default function AsistenciaProfesor() {
       const s = await attendanceService.createSession(courseId, windowSecs, label || undefined)
       setSession(s)
       setCurrentToken(s.current_token)
+      // Inicializar el contador con la duración completa para que el profesor
+      // vea "2:00" al instante si configuró 2 min, en lugar del residuo
+      // hasta el próximo límite de ventana TOTP.
+      setTimeLeft(s.window_seconds)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error al crear sesión')
     } finally {

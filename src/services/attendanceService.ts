@@ -98,9 +98,17 @@ export const attendanceService = {
       headers: headers(),
       body: JSON.stringify({ token }),
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.detail || 'Error al registrar asistencia')
-    return data
+    let data: Record<string, unknown>
+    try {
+      data = await res.json() as Record<string, unknown>
+    } catch {
+      // La respuesta llegó truncada (conexión móvil cortada después de que el backend
+      // procesó la solicitud). Lo tratamos como error de red para que AsistenciaEstudiante
+      // reintente automáticamente y detecte el 409 si la asistencia ya quedó registrada.
+      throw new Error('failed to fetch')
+    }
+    if (!res.ok) throw new Error((data.detail as string | undefined) || 'Error al registrar asistencia')
+    return data as { ok: boolean; message: string; recorded_at: string; session_label?: string }
   },
 
   async getAttendances(sessionId: string): Promise<AttendanceRecord[]> {
