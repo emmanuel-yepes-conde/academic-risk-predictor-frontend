@@ -1,0 +1,30 @@
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_7172190e033fb4 800-830
+  s_b03b3a99345ebc::t_5ac14d78fef808 692,697
+src/pages/Perfil.tsx
+  s_b03b3a99345ebc::t_aa250aba44bbe4 26,30-37,46
+  s_b03b3a99345ebc::t_31e30381e47af4 61-63,67
+  s_b03b3a99345ebc::t_1ac2403fc861f7 9
+  s_b03b3a99345ebc::t_f7e0cad5df7561 72-73
+  s_b03b3a99345ebc::t_7848b2cfb49414 209-212,214-221,225-232,235-239,242
+src/index.css
+  s_b03b3a99345ebc::t_6e213a248cfad4 94
+src/services/enrollmentService.ts
+  s_b03b3a99345ebc::t_1c32a5fdfce296 139-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "a8b32ecca4c70ff4acd29205dbadc70978d92ef1",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
