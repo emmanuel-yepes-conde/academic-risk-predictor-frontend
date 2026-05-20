@@ -274,7 +274,7 @@ export function GradesProvider({ children }: { children: ReactNode }) {
 
           const students: Student[] = backendStudents.map(s => ({
             id:          s.id,
-            studentCode: s.institutional_email ?? s.email,
+            studentCode: s.student_institutional_id ?? s.institutional_email ?? s.email,
             name:        s.full_name,
             program:     '',
             semester:    0,

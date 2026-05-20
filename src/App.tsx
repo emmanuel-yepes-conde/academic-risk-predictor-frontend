@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 're
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from './context/AuthContext'
 import LoginPage from './pages/Login'
-import Prediccion from './pages/Prediccion'
 import MisMaterias from './pages/MisMaterias'
 import MateriaDetalle from './pages/MateriaDetalle'
 import Dashboard from './pages/Dashboard'
@@ -223,9 +222,7 @@ export default function App() {
               <RequireRole role="student"><MisMaterias /></RequireRole>
             } />
             <Route path="/mis-materias" element={<Navigate to="/" replace />} />
-            <Route path="/prediccion" element={
-              <RequireRole role="student"><Prediccion /></RequireRole>
-            } />
+            <Route path="/prediccion" element={<Navigate to="/mis-materias" replace />} />
             <Route path="/materia/:courseId" element={
               <RequireRole role="student"><MateriaDetalle /></RequireRole>
             } />

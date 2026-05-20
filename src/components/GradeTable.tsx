@@ -380,7 +380,10 @@ function ReferralHistoryModal({
         <div className="flex-shrink-0 px-6 py-4 border-t border-usb-border bg-white">
           <button
             onClick={onClose}
-            className="w-full py-3 rounded-full border border-usb-border text-usb-muted hover:text-usb-text font-semibold text-sm transition-all"
+            className="w-full py-3 rounded-full font-semibold text-sm transition-all"
+            style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#fecaca')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#fee2e2')}
           >
             Cerrar
           </button>

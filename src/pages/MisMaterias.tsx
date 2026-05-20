@@ -15,7 +15,7 @@ import { motion } from 'framer-motion'
 import {
   BookOpen, Loader2, AlertCircle,
   GraduationCap, Hash, TrendingUp,
-  Layers, CheckSquare, ShieldAlert, CheckCircle2, BarChart2,
+  Layers, CheckSquare, ShieldAlert, CheckCircle2,
   Award, Clock, BookMarked,
 } from 'lucide-react'
 import Header from '../components/Header'
@@ -587,37 +587,25 @@ function CourseCard({ ec, index, gi, navigate }: {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Predict button — only for active courses */}
-          {!isCompleted && (
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => navigate(`/prediccion?courseId=${ec.course.id}`)}
-              className="flex items-center gap-1.5 text-[0.72rem] font-bold px-2.5 py-1.5 rounded-lg transition-colors"
-              style={{
-                background: 'rgba(0,117,74,0.08)',
-                color: 'var(--green-accent)',
-                border: '1px solid rgba(0,117,74,0.15)',
-              }}
-            >
-              <BarChart2 size={11} />
-              Predecir riesgo
-            </motion.button>
-          )}
-
-          {/* Detail button — shows course info and notes, no prediction */}
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => navigate(`/materia/${ec.course.id}`)}
-            className="flex items-center gap-1 text-[0.72rem] font-bold px-2.5 py-1.5 rounded-lg"
-            style={{
-              background: 'var(--canvas-warm)',
-              color: 'var(--text-muted)',
-              border: '1px solid rgba(0,0,0,0.08)',
-            }}
+            className="flex items-center gap-1.5 text-[0.72rem] font-bold px-3 py-1.5 rounded-lg transition-colors"
+            style={isCompleted
+              ? {
+                  background: 'var(--canvas-warm)',
+                  color: 'var(--text-muted)',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                }
+              : {
+                  background: 'var(--green-accent)',
+                  color: 'white',
+                  boxShadow: '0 2px 6px rgba(0,117,74,0.25)',
+                }
+            }
           >
-            Ver notas
+            {isCompleted ? 'Ver materia' : 'Ir al curso'}
           </motion.button>
         </div>
       </div>
