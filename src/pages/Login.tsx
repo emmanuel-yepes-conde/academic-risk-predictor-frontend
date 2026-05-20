@@ -463,43 +463,6 @@ export default function LoginPage() {
               ))}
             </div>
 
-            {/* Stats strip */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1, duration: 0.5 }}
-              className="flex items-center gap-6 pt-2"
-            >
-              {stats.map((s, i) => (
-                <div key={i} className="text-center">
-                  <p
-                    className="text-2xl font-extrabold leading-tight"
-                    style={{ color: 'var(--green-light)' }}
-                  >
-                    {s.value}
-                  </p>
-                  <p className="text-white/35 text-[0.63rem] uppercase tracking-wider mt-0.5 font-bold">
-                    {s.label}
-                  </p>
-                </div>
-              ))}
-
-              <div className="h-8 w-px bg-white/10 mx-1" />
-
-              <motion.div
-                animate={{ opacity: [0.6, 1, 0.6] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="flex items-center gap-1.5"
-              >
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: 'var(--green-light)', boxShadow: '0 0 8px rgba(212,233,226,0.7)' }}
-                />
-                <span className="text-xs font-bold" style={{ color: 'var(--green-light)' }}>
-                  Sistema activo
-                </span>
-              </motion.div>
-            </motion.div>
           </div>
 
           {/* Bottom — copyright */}
@@ -507,9 +470,9 @@ export default function LoginPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.3 }}
-            className="text-white/18 text-xs relative z-10 font-medium"
+            className="text-white/50 text-xs relative z-10 font-medium"
           >
-            © 2024 Academic Risk · Todos los derechos reservados
+            © 2026 Academic Risk · Todos los derechos reservados
           </motion.p>
         </motion.div>
 

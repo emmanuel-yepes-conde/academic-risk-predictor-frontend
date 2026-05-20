@@ -1,19 +1,18 @@
 /**
  * Header — Starbucks-inspired deep green top bar.
- * Features: brand mark, role-based nav, autosave indicator, user menu, CommandBar trigger.
+ * Features: brand mark, role-based nav, autosave indicator, user menu.
  */
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LogOut, Cloud, Loader2,
-  LayoutDashboard, GraduationCap, Settings, Command,
+  LayoutDashboard, GraduationCap, Settings,
   ChevronDown, HelpCircle, Download, Bell, BellOff,
   User, CheckCheck, Trash2, AlertTriangle, CalendarCheck,
   BookOpen, Megaphone, type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import CommandBar, { useCommandBar } from './CommandBar'
 import Tooltip from './Tooltip'
 import { usePWAInstall } from '../hooks/usePWAInstall'
 import { usePushNotifications } from '../hooks/usePushNotifications'
@@ -376,7 +375,6 @@ function UserChip({ onLogout }: { onLogout: () => void }) {
 export default function Header({ lastSaved, subtitle }: Props) {
   const { user, logout } = useAuth()
   const navigate         = useNavigate()
-  const { open, setOpen} = useCommandBar()
   const { canInstall, install } = usePWAInstall()
 
   const isStudent   = user?.role === 'student'
@@ -390,8 +388,6 @@ export default function Header({ lastSaved, subtitle }: Props) {
 
   return (
     <>
-      <CommandBar open={open} onClose={() => setOpen(false)} />
-
       <header
         className="sticky top-0 z-40"
         style={{ background: 'var(--green-deep)', boxShadow: 'var(--shadow-nav)' }}
@@ -490,18 +486,6 @@ export default function Header({ lastSaved, subtitle }: Props) {
                 </button>
               </Tooltip>
             )}
-
-            {/* Cmd+K trigger */}
-            <Tooltip content="Búsqueda rápida (⌘K)" placement="bottom">
-              <button
-                onClick={() => setOpen(true)}
-                aria-label="Abrir barra de comandos (⌘K)"
-                className="hidden sm:flex items-center gap-1.5 text-white/35 text-xs px-2.5 py-1.5 rounded-xl hover:bg-white/08 hover:text-white/70 transition-colors border border-white/10 no-tap"
-              >
-                <Command size={12} />
-                <span className="font-semibold">⌘K</span>
-              </button>
-            </Tooltip>
 
             {/* Tour help */}
             <Tooltip content="Repetir tour" placement="bottom">

@@ -15,6 +15,16 @@ import Header from '../components/Header'
 import GradeTable from '../components/GradeTable'
 import ComponentsConfig from '../components/ComponentsConfig'
 import ImportModal from '../components/ImportModal'
+import TourGuide from '../components/TourGuide'
+import { type Step } from 'react-joyride'
+import { useTour } from '../hooks/useTour'
+
+const TOUR_STEPS_GRADES: Step[] = [
+  { target: '#tour-grades-course',  title: '📚 Materia seleccionada',     content: 'Aquí ves el nombre de la materia, el grupo y el período académico.',                          placement: 'bottom' },
+  { target: '#tour-grades-tabs',    title: '📋 Pestañas de gestión',       content: 'Cambia entre Calificaciones, Distribución de notas, Asistencia, Historial QR y Simulador.', placement: 'bottom' },
+  { target: '#tour-grades-qr',      title: '📷 Control de asistencia QR',  content: 'Genera el QR rotativo para que los estudiantes registren su asistencia en clase.',           placement: 'bottom' },
+  { target: '#tour-grades-export',  title: '⬇️ Exportar notas',            content: 'Descarga las notas del curso en formato CSV para análisis o reportes.',                      placement: 'bottom' },
+]
 
 interface Props {
   course:            Course
@@ -132,6 +142,7 @@ export default function GradesPage({
   const [attendanceRows, setAttendanceRows] = useState<Record<string, AttendanceRowState>>({})
   const [attendanceSavingStudentId, setAttendanceSavingStudentId] = useState<string | null>(null)
   const [attendanceLoadedCourseId, setAttendanceLoadedCourseId] = useState<string | null>(null)
+  const [manualRegisteredToday, setManualRegisteredToday] = useState<Set<string>>(new Set())
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([])
   const [sessionHistoryLoading, setSessionHistoryLoading] = useState(false)
   const [sessionHistoryError, setSessionHistoryError] = useState(false)
@@ -139,6 +150,7 @@ export default function GradesPage({
   const [simBonus, setSimBonus] = useState(0)
   const [simStudentId, setSimStudentId] = useState<string>('all')
   const { user } = useAuth()
+  const { run: tourRun, onTourEnd: tourEnd } = useTour('professor-grades', user?.id)
   const { courseStudentsMap } = useGrades()
   const courseStudentsList = courseStudentsMap[course.id] ?? []
   const totalPct = course.components.reduce((s, c) => s + c.percentage, 0)
@@ -369,13 +381,21 @@ export default function GradesPage({
           },
         }
       })
+      // Marcar como registrado manualmente hoy (solo para asistencia, no inasistencia)
+      if (present) {
+        setManualRegisteredToday(prev => new Set([...prev, studentId]))
+      }
+      toast.success(
+        present ? 'Asistencia registrada' : 'Inasistencia registrada',
+        `Clase registrada correctamente para ${courseStudentsList.find(s => s.id === studentId)?.name ?? 'el estudiante'}.`,
+      )
     } catch (err) {
       setAttendanceError(friendlyError(err))
       toast.error('No se pudo guardar asistencia', friendlyError(err))
     } finally {
       setAttendanceSavingStudentId(null)
     }
-  }, [attendanceRows, course, selectedAttendanceCohort, toast])
+  }, [attendanceRows, course, courseStudentsList, selectedAttendanceCohort, toast])
 
   useEffect(() => {
     if (activeTab === 'attendance' && attendanceLoadedCourseId !== course.id && !attendanceLoading) {
@@ -411,6 +431,7 @@ export default function GradesPage({
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--canvas-warm)' }}>
       <Header />
+      <TourGuide run={tourRun} steps={TOUR_STEPS_GRADES} onEnd={tourEnd} />
 
       <div className="flex items-center gap-2 px-5 pt-5 max-w-7xl mx-auto w-full">
         <button
@@ -423,6 +444,7 @@ export default function GradesPage({
 
         <div className="ml-auto flex items-center gap-2">
           <button
+            id="tour-grades-qr"
             onClick={() => navigate(`/materia/${course.id}/asistencia`)}
             className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-1.5 rounded-full transition-all shadow-sm"
             style={{ background: 'var(--green-deep)' }}
@@ -476,6 +498,7 @@ export default function GradesPage({
               a.click()
               URL.revokeObjectURL(url)
             }}
+            id="tour-grades-export"
             className="flex items-center gap-1.5 text-xs font-semibold text-usb-muted border border-usb-border rounded-full px-3 py-1.5 transition-all"
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--green-accent)'; e.currentTarget.style.borderColor = 'var(--green-accent)' }}
             onMouseLeave={e => { e.currentTarget.style.color = ''; e.currentTarget.style.borderColor = '' }}
@@ -489,6 +512,7 @@ export default function GradesPage({
       <main className="flex-1 px-5 py-6 max-w-7xl mx-auto w-full">
         {/* Course info + risk summary */}
         <motion.div
+          id="tour-grades-course"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl shadow-card border border-usb-border p-5 mb-5"
@@ -561,7 +585,7 @@ export default function GradesPage({
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white border border-usb-border rounded-2xl p-1 w-fit mb-4">
+        <div id="tour-grades-tabs" className="flex gap-1 bg-white border border-usb-border rounded-2xl p-1 w-fit mb-4">
           {[
             { key: 'grades', label: 'Calificaciones' },
             { key: 'config', label: `Distribución de notas`, warn: !allValid },
@@ -638,21 +662,11 @@ export default function GradesPage({
           {activeTab === 'attendance' && (
             <div className="p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-usb-muted">
-                  Registra asistencia del cohorte actual por estudiante.
-                </p>
-                <div className="inline-flex items-center gap-1 bg-usb-canvas border border-usb-border rounded-xl p-1">
-                  {(course.cuts ?? []).slice(0, 3).map((cut, idx) => (
-                    <button
-                      key={cut.id}
-                      onClick={() => setAttendanceCutIndex(idx)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${idx === attendanceCutIndex ? 'text-white' : 'text-usb-muted hover:text-usb-text'
-                        }`}
-                      style={idx === attendanceCutIndex ? { background: 'var(--green-accent)' } : {}}
-                    >
-                      {cut.name}
-                    </button>
-                  ))}
+                <div>
+                  <p className="text-sm font-semibold text-usb-text">Registro de asistencia por clase</p>
+                  <p className="text-xs text-usb-muted mt-0.5">
+                    Cada clic registra una clase. Corte activo: <span className="font-bold text-usb-text">{attendanceCutLabel}</span>.
+                  </p>
                 </div>
               </div>
 
@@ -681,20 +695,24 @@ export default function GradesPage({
                     <tbody>
                       {courseStudentsList.map((student) => {
                         const row = attendanceRows[student.id]
-                        const counters = row?.counters[selectedAttendanceCohort] ?? { assist: 0, not_asist: 0 }
+                        // Totales de todas las cortes
+                        const totalAssist = COHORT_KEYS.reduce((s, k) => s + (row?.counters[k]?.assist ?? 0), 0)
+                        const totalNotAsist = COHORT_KEYS.reduce((s, k) => s + (row?.counters[k]?.not_asist ?? 0), 0)
                         const isSaving = attendanceSavingStudentId === student.id
                         const alreadyQR = qrRegisteredToday.has(student.id)
+                        const alreadyManual = manualRegisteredToday.has(student.id)
+                        const alreadyToday = alreadyQR || alreadyManual
                         return (
                           <tr key={student.id} className="border-b border-usb-border last:border-b-0">
                             <td className="px-4 py-3 text-sm font-semibold text-usb-text">{student.name}</td>
                             <td className="px-4 py-3 text-sm text-usb-muted font-mono">{student.studentCode}</td>
-                            <td className="px-4 py-3 text-sm font-bold text-emerald-700">{counters.assist}</td>
-                            <td className="px-4 py-3 text-sm font-bold text-rose-700">{counters.not_asist}</td>
+                            <td className="px-4 py-3 text-sm font-bold text-emerald-700">{totalAssist}</td>
+                            <td className="px-4 py-3 text-sm font-bold text-rose-700">{totalNotAsist}</td>
                             <td className="px-4 py-3">
-                              {alreadyQR ? (
+                              {alreadyToday ? (
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
                                   style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac' }}>
-                                  <Check size={12} /> Registrado vía QR hoy
+                                  <Check size={12} /> {alreadyQR ? 'Registrado vía QR hoy' : 'Registrado hoy'}
                                 </span>
                               ) : (
                                 <div className="flex items-center gap-2">
@@ -727,7 +745,7 @@ export default function GradesPage({
                 </div>
               )}
               <p className="text-xs text-usb-faint">
-                Cohorte activo: <span className="font-bold text-usb-muted">{attendanceCutLabel}</span>.
+                Las clases se registran en el <span className="font-bold text-usb-muted">{attendanceCutLabel}</span> activo. Solo se puede registrar una vez por día por estudiante.
               </p>
             </div>
           )}

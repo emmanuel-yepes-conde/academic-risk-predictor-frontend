@@ -44,9 +44,16 @@ interface Message {
   error?:    boolean
 }
 
+interface PredictionContext {
+  nivel_riesgo: 'BAJO' | 'MEDIO' | 'ALTO'
+  porcentaje_riesgo: number
+  analisis_ia?: string
+}
+
 interface Props {
-  courseId:   string
-  courseName: string
+  courseId:          string
+  courseName:        string
+  predictionContext?: PredictionContext
 }
 
 function EvidenceChip({ ev }: { ev: RagEvidence }) {
@@ -61,7 +68,7 @@ function EvidenceChip({ ev }: { ev: RagEvidence }) {
   )
 }
 
-export default function CourseChat({ courseId, courseName }: Props) {
+export default function CourseChat({ courseId, courseName, predictionContext }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
@@ -81,7 +88,10 @@ export default function CourseChat({ courseId, courseName }: Props) {
     setLoading(true)
 
     try {
-      const res = await ragService.query(question, courseId)
+      const queryText = predictionContext
+        ? `[Contexto del análisis predictivo del estudiante: Nivel de riesgo ${predictionContext.nivel_riesgo} (${Math.round(predictionContext.porcentaje_riesgo)}%). ${predictionContext.analisis_ia ? 'Análisis IA: ' + predictionContext.analisis_ia.slice(0, 300) + '...' : ''}] ${question}`
+        : question
+      const res = await ragService.query(queryText, courseId)
       setMessages(prev => [
         ...prev,
         { role: 'assistant', content: res.answer, evidences: res.evidences },
@@ -114,7 +124,8 @@ export default function CourseChat({ courseId, courseName }: Props) {
       style={{
         boxShadow: 'var(--shadow-card)',
         border: '1px solid rgba(0,0,0,0.07)',
-        height: '480px',
+        minHeight: '420px',
+        height: '100%',
       }}
     >
       {/* Header */}
@@ -151,9 +162,18 @@ export default function CourseChat({ courseId, courseName }: Props) {
             <p className="font-bold text-sm mb-1" style={{ color: 'var(--text-dark)' }}>
               Pregúntale al asistente
             </p>
-            <p className="text-xs max-w-[240px]" style={{ color: 'var(--text-faint)' }}>
-              Responde basado en los documentos que subió tu docente para esta materia.
-            </p>
+            {predictionContext ? (
+              <div
+                className="mt-2 px-3 py-2 rounded-xl text-xs font-semibold max-w-[260px] text-center"
+                style={{ background: 'rgba(0,117,74,0.08)', color: 'var(--green-accent)', border: '1px solid rgba(0,117,74,0.15)' }}
+              >
+                🎯 Tengo tu análisis de riesgo listo — puedo responder sobre tu rendimiento y los documentos del curso
+              </div>
+            ) : (
+              <p className="text-xs max-w-[240px]" style={{ color: 'var(--text-faint)' }}>
+                Responde basado en los documentos que subió tu docente para esta materia.
+              </p>
+            )}
           </motion.div>
         )}
 

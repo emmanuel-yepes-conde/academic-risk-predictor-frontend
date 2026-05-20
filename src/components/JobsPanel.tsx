@@ -3,8 +3,8 @@
  * Muestra jobs cron (editables) y triggers de evento (informativos).
  */
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Play, RefreshCw, Clock, Zap, Mail, MessageSquare, Bell, Pencil, Check, X, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Play, RefreshCw, Clock, Zap, Mail, MessageSquare, Bell, Pencil, Check, X, ChevronDown, ChevronUp, Loader2, FlaskConical, Phone } from 'lucide-react'
 import { jobsService, type JobConfig } from '../services/jobsService'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,12 +45,111 @@ interface JobCardProps {
   onToast: (msg: string, ok?: boolean) => void
 }
 
+function TestModal({ job, onClose, onToast }: { job: JobConfig; onClose: () => void; onToast: (msg: string, ok?: boolean) => void }) {
+  const [email, setEmail]     = useState('')
+  const [phone, setPhone]     = useState('')
+  const [sending, setSending] = useState(false)
+
+  const send = async () => {
+    if (!email.trim() && !phone.trim()) return
+    setSending(true)
+    try {
+      const res = await jobsService.test(job.id, email.trim() || undefined, phone.trim() || undefined)
+      onToast(res.message)
+      onClose()
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Error al enviar prueba', false)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+        style={{ border: '1px solid rgba(0,0,0,0.1)' }}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="font-extrabold text-sm" style={{ color: 'var(--text-dark)' }}>
+              Enviar prueba
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{job.name}</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-lg text-usb-faint hover:text-rose-500 transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+
+        <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          Ingresa al menos un canal. Se enviará una notificación de prueba real.
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-[0.68rem] font-bold uppercase tracking-wider mb-1 flex items-center gap-1"
+              style={{ color: 'var(--text-faint)' }}>
+              <Mail size={11} /> Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              className="w-full px-3 py-2 text-xs border border-usb-border rounded-xl focus:outline-none focus:border-green-accent transition-colors"
+            />
+          </div>
+          <div>
+            <label className="text-[0.68rem] font-bold uppercase tracking-wider mb-1 flex items-center gap-1"
+              style={{ color: 'var(--text-faint)' }}>
+              <Phone size={11} /> WhatsApp (sin +57)
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="3001234567"
+              className="w-full px-3 py-2 text-xs border border-usb-border rounded-xl focus:outline-none focus:border-green-accent transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-usb-border text-usb-muted hover:bg-usb-canvas transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={() => void send()}
+            disabled={sending || (!email.trim() && !phone.trim())}
+            className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-opacity disabled:opacity-50"
+            style={{ background: '#d97706' }}
+          >
+            {sending
+              ? <Loader2 size={12} className="animate-spin" />
+              : <FlaskConical size={12} />}
+            Enviar prueba
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+
 function JobCard({ job, onUpdate, onToast }: JobCardProps) {
   const [editing, setEditing]         = useState(false)
   const [cronDraft, setCronDraft]     = useState(job.cron_expr ?? '')
   const [nameDraft, setNameDraft]     = useState(job.name)
   const [saving, setSaving]           = useState(false)
   const [triggering, setTriggering]   = useState(false)
+  const [testing, setTesting]         = useState(false)
+  const [showTest, setShowTest]       = useState(false)
   const [expanded, setExpanded]       = useState(false)
   const isCron = job.job_type === 'cron'
 
@@ -210,18 +309,30 @@ function JobCard({ job, onUpdate, onToast }: JobCardProps) {
 
           {/* Ejecutar ahora (solo cron) */}
           {isCron && (
-            <button
-              onClick={triggerNow}
-              disabled={triggering || !job.enabled}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-white transition-opacity"
-              style={{ background: job.enabled ? 'var(--green-accent)' : '#9ca3af', opacity: triggering ? 0.7 : 1 }}
-              title="Ejecutar ahora"
-            >
-              {triggering
-                ? <Loader2 size={11} className="animate-spin" />
-                : <Play size={11} />}
-              Ejecutar
-            </button>
+            <>
+              <button
+                onClick={triggerNow}
+                disabled={triggering || !job.enabled}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-white transition-opacity"
+                style={{ background: job.enabled ? 'var(--green-accent)' : '#9ca3af', opacity: triggering ? 0.7 : 1 }}
+                title="Ejecutar ahora"
+              >
+                {triggering
+                  ? <Loader2 size={11} className="animate-spin" />
+                  : <Play size={11} />}
+                Ejecutar
+              </button>
+              <button
+                onClick={() => setShowTest(true)}
+                disabled={testing}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-white transition-opacity"
+                style={{ background: '#d97706', opacity: testing ? 0.7 : 1 }}
+                title="Enviar notificación de prueba"
+              >
+                <FlaskConical size={11} />
+                Test
+              </button>
+            </>
           )}
 
           {/* Expandir descripción */}
@@ -249,6 +360,17 @@ function JobCard({ job, onUpdate, onToast }: JobCardProps) {
           )}
         </div>
       )}
+
+      {/* Modal de prueba */}
+      <AnimatePresence>
+        {showTest && (
+          <TestModal
+            job={job}
+            onClose={() => setShowTest(false)}
+            onToast={onToast}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

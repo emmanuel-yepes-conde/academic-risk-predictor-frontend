@@ -10,6 +10,15 @@ import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
+// ─── Register Service Worker (Push Notifications) ───────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.warn('[SW] Registration failed:', err)
+    })
+  })
+}
+
 // ─── Register GSAP plugins ───────────────────────────────────────────────────
 gsap.registerPlugin(ScrollTrigger)
 

@@ -15,16 +15,17 @@ export interface TokenResponse {
 }
 
 export interface BackendUser {
-  id:                 string
-  email:              string
-  institutional_email: string | null
-  full_name:          string
-  role:               'STUDENT' | 'PROFESSOR' | 'ADMIN'
-  status:             'ACTIVE' | 'INACTIVE'
-  ml_consent:         boolean
-  created_at:         string
-  updated_at:         string
-  last_login:         string | null
+  id:                       string
+  email:                    string
+  institutional_email:      string | null
+  full_name:                string
+  role:                     'STUDENT' | 'PROFESSOR' | 'ADMIN'
+  status:                   'ACTIVE' | 'INACTIVE'
+  ml_consent:               boolean
+  created_at:               string
+  updated_at:               string
+  last_login:               string | null
+  student_institutional_id: string | null | undefined
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────

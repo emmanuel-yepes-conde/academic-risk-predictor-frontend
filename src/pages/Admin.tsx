@@ -9,11 +9,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2, BookOpen, Users, BookMarked,
   Plus, X, LogOut, ShieldCheck, GraduationCap,
-  Loader2, ChevronDown, ChevronUp, AlertCircle, Search,
+  Loader2, ChevronDown, ChevronUp, AlertCircle, AlertTriangle, Search,
   Pencil, Eye, Clock, History, CheckCircle2, XCircle,
   ArrowLeft, Upload, Mail, MessageSquare, Filter, Zap,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import TourGuide from '../components/TourGuide'
+import { type Step } from 'react-joyride'
+import { useTour } from '../hooks/useTour'
+
+const TOUR_STEPS_ADMIN: Step[] = [
+  { target: '#tour-admin-tabs',    title: '🗂️ Secciones del panel',    content: 'Navega entre Programas, Usuarios, Templates y Automatizaciones para gestionar toda la plataforma.', placement: 'bottom' },
+  { target: '#tour-admin-content', title: '⚙️ Área de gestión',        content: 'Aquí creas, editas y eliminas los registros de cada sección. Los cambios se aplican en tiempo real.',   placement: 'top'    },
+  { target: '#tour-header-help',   title: '❓ Repetir este tour',       content: 'Haz clic en el ícono de ayuda para volver a ver el tour en cualquier momento.',                           placement: 'bottom' },
+]
 
 import { api } from '../services/api'
 import { programService } from '../services/programService'
@@ -633,6 +642,7 @@ function CoursesView({
   const [editingSubject, setEditingSubject]       = useState<BackendSubject | null>(null)
   const [togglingId, setTogglingId]               = useState<string | null>(null)
   const [selectedSubject, setSelectedSubject]     = useState<BackendSubject | null>(null)
+  const [pendingToggleSubject, setPendingToggleSubject] = useState<BackendSubject | null>(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -643,6 +653,7 @@ function CoursesView({
   }, [subjects, search])
 
   const handleToggleStatus = async (s: BackendSubject) => {
+    setPendingToggleSubject(null)
     setTogglingId(s.id)
     try {
       const next = s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
@@ -809,7 +820,7 @@ function CoursesView({
                   <td className="px-4 py-3 text-usb-muted">{s.credits} cr.</td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => void handleToggleStatus(s)}
+                      onClick={() => setPendingToggleSubject(s)}
                       disabled={togglingId === s.id}
                       title={s.status === 'ACTIVE' ? 'Desactivar materia' : 'Activar materia'}
                       className="group flex items-center gap-1.5 transition-opacity disabled:opacity-50"
@@ -856,6 +867,23 @@ function CoursesView({
           />
         )}
       </AnimatePresence>
+
+      {/* Confirm toggle status */}
+      {pendingToggleSubject && (
+        <ConfirmModal
+          title={pendingToggleSubject.status === 'ACTIVE' ? 'Desactivar materia' : 'Activar materia'}
+          message={
+            pendingToggleSubject.status === 'ACTIVE'
+              ? `¿Estás seguro de que quieres desactivar "${pendingToggleSubject.name}"? Los cursos asociados no podrán ser gestionados.`
+              : `¿Estás seguro de que quieres activar "${pendingToggleSubject.name}"?`
+          }
+          confirmLabel={pendingToggleSubject.status === 'ACTIVE' ? 'Sí, desactivar' : 'Sí, activar'}
+          confirmStyle={pendingToggleSubject.status === 'ACTIVE' ? 'danger' : 'success'}
+          loading={togglingId === pendingToggleSubject.id}
+          onConfirm={() => void handleToggleStatus(pendingToggleSubject)}
+          onCancel={() => setPendingToggleSubject(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1503,7 +1531,7 @@ const STATUS_READABLE: Record<string, string> = {
 const AUDITABLE_FIELDS = new Set(Object.keys(FIELD_LABELS))
 
 // Fields that change automatically or can't be meaningfully diffed — excluded from diffs
-const AUTO_FIELDS = new Set(['updated_at', 'created_at', 'last_login', 'password_hash'])
+const AUTO_FIELDS = new Set(['updated_at', 'created_at', 'last_login'])
 
 // Normalize a value for comparison — handles Python str() booleans ("True"/"False") vs JSON booleans
 function normalizeForCompare(v: unknown): string {
@@ -1520,7 +1548,7 @@ function formatFieldValue(key: string, value: unknown): string {
   if (key === 'role') return ROLE_READABLE[String(value)] ?? String(value)
   if (key === 'status') return STATUS_READABLE[String(value)] ?? String(value)
   if (key === 'ml_consent') return value ? 'Sí' : 'No'
-  if (key === 'password_hash') return '••••••••'
+  if (key === 'password_hash') return 'Contraseña modificada'
   if (typeof value === 'boolean') return value ? 'Sí' : 'No'
   // Format ISO date strings (handles both "T" and space separator, e.g. "2026-04-21 01:09:30+00:00")
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(value)) {
@@ -1540,6 +1568,69 @@ const OP_COLORS: Record<string, string> = {
   DELETE: 'bg-rose-50 text-rose-600',
 }
 
+// ─── Confirmation modal ───────────────────────────────────────────────────────
+function ConfirmModal({
+  title, message, confirmLabel, confirmStyle = 'danger',
+  loading, onConfirm, onCancel,
+}: {
+  title: string
+  message: string
+  confirmLabel: string
+  confirmStyle?: 'danger' | 'success'
+  loading?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-white rounded-2xl shadow-modal w-full max-w-sm p-6 space-y-4"
+      >
+        <div className="flex items-start gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            confirmStyle === 'danger' ? 'bg-rose-50' : 'bg-emerald-50'
+          }`}>
+            {confirmStyle === 'danger'
+              ? <AlertTriangle size={18} className="text-rose-500" />
+              : <CheckCircle2 size={18} className="text-emerald-600" />}
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-usb-text">{title}</h3>
+            <p className="text-xs text-usb-muted mt-1">{message}</p>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-usb-border text-usb-muted hover:text-usb-text transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+              confirmStyle === 'danger'
+                ? 'bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-60'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60'
+            }`}
+          >
+            {loading ? <Loader2 size={14} className="animate-spin" /> : null}
+            {confirmLabel}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
   user:           BackendUser
   onClose:        () => void
@@ -1550,6 +1641,7 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [togglingStatus, setTogglingStatus] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -1562,6 +1654,7 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
 
   const handleToggleStatus = async () => {
     const newStatus = u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+    setShowStatusConfirm(false)
     setTogglingStatus(true)
     try {
       const updated = await userService.updateStatus(u.id, newStatus)
@@ -1585,7 +1678,7 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
     })
   }
 
-  return (
+  return (<>
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
@@ -1654,7 +1747,7 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
 
           {/* Toggle status */}
           <button
-            onClick={handleToggleStatus}
+            onClick={() => setShowStatusConfirm(true)}
             disabled={togglingStatus}
             className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all border ${
               u.status === 'ACTIVE'
@@ -1730,50 +1823,66 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
                       const newData  = entry.new_data  ?? {}
                       const prevData = entry.previous_data ?? {}
                       const isInsert = entry.operation === 'INSERT'
-
-                      // Backend stores all fields in both new_data and previous_data.
-                      // Show only fields where the value actually changed, normalizing types.
                       const hasPrevData = Object.keys(prevData).length > 0
 
-                      const visibleEntries = Object.entries(newData).filter(([k, v]) => {
+                      // Campos con diff real (valor cambió entre prev y new)
+                      const diffEntries = Object.entries(newData).filter(([k, v]) => {
                         if (!AUDITABLE_FIELDS.has(k) || AUTO_FIELDS.has(k)) return false
                         if (isInsert) return v !== null && v !== undefined && v !== ''
-                        // Only show if value actually differs from previous
                         if (!hasPrevData) return false
+                        // password_hash: si está en new_data es porque cambió
+                        if (k === 'password_hash') return true
                         return normalizeForCompare(v) !== normalizeForCompare(prevData[k])
                       })
 
-                      if (visibleEntries.length === 0) {
-                        return (
+                      // Fallback: si es UPDATE sin previous_data, mostrar fields no-nulos de new_data
+                      const fallbackEntries = (!isInsert && !hasPrevData)
+                        ? Object.entries(newData).filter(([k, v]) =>
+                            AUDITABLE_FIELDS.has(k) && !AUTO_FIELDS.has(k) && v !== null && v !== undefined && v !== '',
+                          )
+                        : []
+
+                      if (diffEntries.length === 0 && fallbackEntries.length === 0) {
+                        return isInsert ? null : (
                           <p className="mt-1.5 text-usb-faint text-[0.65rem] italic">
-                            {isInsert ? null : 'Sin detalles de campos modificados.'}
+                            Actualización registrada sin detalle de campos previos.
                           </p>
                         )
                       }
 
+                      const entriesToShow = diffEntries.length > 0 ? diffEntries : fallbackEntries
+                      const isFallback    = diffEntries.length === 0 && fallbackEntries.length > 0
+
                       return (
                         <div className="mt-1.5 space-y-0.5">
-                          {visibleEntries.map(([k, v]) => {
+                          {isFallback && (
+                            <p className="text-[0.60rem] text-usb-faint italic mb-1">
+                              Estado del registro tras la actualización:
+                            </p>
+                          )}
+                          {entriesToShow.map(([k, v]) => {
                             const prevVal = prevData[k]
                             const newStr  = formatFieldValue(k, v)
                             const prevStr = formatFieldValue(k, prevVal)
+                            // password_hash: mensaje especial
+                            if (k === 'password_hash') {
+                              return (
+                                <p key={k} className="text-usb-faint">
+                                  <span className="font-semibold text-usb-muted">Contraseña:</span>
+                                  <span className="mx-1 text-amber-600 font-semibold">→ Modificada</span>
+                                </p>
+                              )
+                            }
                             return (
                               <p key={k} className="text-usb-faint">
                                 <span className="font-semibold text-usb-muted">{FIELD_LABELS[k]}:</span>
-                                {!isInsert && prevVal !== undefined && prevStr !== '—' && (
+                                {!isInsert && !isFallback && prevVal !== undefined && prevStr !== '—' && (
                                   <span className="mx-1 line-through text-rose-300">{prevStr}</span>
                                 )}
                                 <span className="mx-1 text-emerald-600 font-semibold">→ {newStr}</span>
                               </p>
                             )
                           })}
-                          {/* prevOnlyKeys placeholder — intentionally empty, kept for future use */}
-                          {([] as string[]).map(k => (
-                            <p key={k} className="text-usb-faint">
-                              <span className="font-semibold text-usb-muted">{FIELD_LABELS[k]}:</span>
-                              <span className="mx-1 text-emerald-600 font-semibold">→ {formatFieldValue(k, prevData[k])}</span>
-                            </p>
-                          ))}
                         </div>
                       )
                     })()}
@@ -1789,6 +1898,24 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
         </div>
       </motion.div>
     </motion.div>
+
+    {/* Confirmation modal for status toggle */}
+    <AnimatePresence>
+      {showStatusConfirm && (
+        <ConfirmModal
+          title={u.status === 'ACTIVE' ? `¿Desactivar a ${u.full_name}?` : `¿Activar a ${u.full_name}?`}
+          message={u.status === 'ACTIVE'
+            ? 'El usuario no podrá iniciar sesión hasta que sea reactivado.'
+            : 'El usuario podrá volver a iniciar sesión en la plataforma.'}
+          confirmLabel={u.status === 'ACTIVE' ? 'Sí, desactivar' : 'Sí, activar'}
+          confirmStyle={u.status === 'ACTIVE' ? 'danger' : 'success'}
+          loading={togglingStatus}
+          onConfirm={() => { void handleToggleStatus() }}
+          onCancel={() => setShowStatusConfirm(false)}
+        />
+      )}
+    </AnimatePresence>
+  </>
   )
 }
 
@@ -3417,6 +3544,7 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
 export default function AdminPage() {
   const { user, logout } = useAuth()
   const navigate         = useNavigate()
+  const { run: tourRun, onTourEnd: tourEnd } = useTour('admin-panel', user?.id)
   const [activeTab, setActiveTab] = useState<Tab>('programas')
 
   const handleLogout = () => { logout(); navigate('/login') }
@@ -3427,6 +3555,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-usb-canvas flex flex-col">
+      <TourGuide run={tourRun} steps={TOUR_STEPS_ADMIN} onEnd={tourEnd} />
 
       {/* Header */}
       <header
@@ -3464,6 +3593,14 @@ export default function AdminPage() {
               <span className="hidden sm:block text-white text-xs font-bold">{user?.name}</span>
             </div>
             <button
+              id="tour-header-help"
+              onClick={() => window.dispatchEvent(new Event('ar:start-tour'))}
+              title="Repetir tour"
+              className="p-1.5 text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <GraduationCap size={15} />
+            </button>
+            <button
               onClick={handleLogout}
               title="Cerrar sesión"
               className="p-1.5 text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -3475,7 +3612,7 @@ export default function AdminPage() {
       </header>
 
       {/* Tab bar */}
-      <div className="bg-white border-b border-usb-border sticky top-[56px] z-[999]">
+      <div id="tour-admin-tabs" className="bg-white border-b border-usb-border sticky top-[56px] z-[999]">
         <div className="max-w-7xl mx-auto px-6 flex gap-1">
           {TABS.map(tab => {
             const Icon = tab.icon
@@ -3499,7 +3636,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+      <main id="tour-admin-content" className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
