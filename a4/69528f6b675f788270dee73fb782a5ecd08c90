@@ -1,0 +1,83 @@
+src/components/Header.tsx
+  s_b03b3a99345ebc::t_20ad76a27fd8c8 3,10
+src/pages/Grades.tsx
+  s_b03b3a99345ebc::t_bd0cd2f980ec40 588
+  s_b03b3a99345ebc::t_8d2987042d9e57 665-669
+  s_b03b3a99345ebc::t_7da1693481a0f5 434
+  s_b03b3a99345ebc::t_0647438ce929c0 698-700,703-704,709-710,712,715
+  s_b03b3a99345ebc::t_d208e6e3745ff2 748
+  s_b03b3a99345ebc::t_1db515278216a8 447
+  s_b03b3a99345ebc::t_6e33079365f9bd 153
+  s_b03b3a99345ebc::t_dbe50a0c2081bc 515
+  s_b03b3a99345ebc::t_beedde768f7f61 20-27
+  s_b03b3a99345ebc::t_320b77801b519b 501
+  s_b03b3a99345ebc::t_b5475aafb8f404 18-19
+  s_b03b3a99345ebc::t_f2a8b63144e513 145
+  s_b03b3a99345ebc::t_cc8ebbbf0ef5fc 384-391,398
+src/pages/Admin.tsx
+  s_b03b3a99345ebc::t_bb2773a82bf1d2 1657
+  s_b03b3a99345ebc::t_ce22fef49dd0e1 1534
+  s_b03b3a99345ebc::t_d291a95c201e85 17-18
+  s_b03b3a99345ebc::t_c46f4be99da899 656
+  s_b03b3a99345ebc::t_b0d8a8b950f610 1571-1633
+  s_b03b3a99345ebc::t_aa0ae32bb71a15 1644
+  s_b03b3a99345ebc::t_ddfa26bc281e6f 3547
+  s_b03b3a99345ebc::t_8999dfc5200050 3558
+  s_b03b3a99345ebc::t_dcd5ded547477f 3596-3602
+  s_b03b3a99345ebc::t_8b8249b5430d98 1828-1829,1833-1834,1838-1846,1848,1853-1855,1858-1863,1867-1875,1879
+  s_b03b3a99345ebc::t_38ce9dd92e919a 645
+  s_b03b3a99345ebc::t_9ff917e134d5b9 1551
+  s_b03b3a99345ebc::t_cd138d90f56aeb 3615
+  s_b03b3a99345ebc::t_ecb6dd8cb6f599 19-25
+  s_b03b3a99345ebc::t_1bd832bddff965 12
+  s_b03b3a99345ebc::t_2ac070e96b1b04 1681
+  s_b03b3a99345ebc::t_b529e1c03a16b1 870-886
+  s_b03b3a99345ebc::t_0403a592139974 3639
+  s_b03b3a99345ebc::t_b99dbebd6ce1fd 1901-1918
+  s_b03b3a99345ebc::t_3caeeeeaa4c94b 1750
+  s_b03b3a99345ebc::t_8ffe29f612fe3f 823
+src/App.tsx
+  s_b03b3a99345ebc::t_4a5763928a7c7d 225
+src/pages/Login.tsx
+  s_b03b3a99345ebc::t_23d193f985c1b4 473,475
+src/services/authService.ts
+  s_b03b3a99345ebc::t_ceb87bfafd8c5e 18-28
+src/components/GradeTable.tsx
+  s_b03b3a99345ebc::t_ff39fdd04b4f4f 383-386
+src/pages/MisMaterias.tsx
+  s_b03b3a99345ebc::t_efef7bddf9fdbc 594-606,608
+  s_b03b3a99345ebc::t_7b57c665d30ab2 18
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_bbff6762d65c9e 963
+  s_b03b3a99345ebc::t_a3ba7920c5cddb 3-5,13-15,17-23,40-82,86-88,97-114,144,177,187,189,193,195,197,203,206,209,211-212,218-219,221-222,224-225,229,234-235,241,245,248,251,255-257,261,265-266,273,279,284-286,289-290,294,297,306,313-584,587-588,591,596-600,602-603,605-613,616-627,631,633,637-638,671,709,718-719,731-804,810,812-813,816-876,881-887,907,910-911,920-928,947,950,956,958-959,970-972,974,978,997-1009,1014-1016,1020,1059,1099,1101-1118,1120-1138,1140-1141,1143-1161,1163-1186,1188-1197,1200-1227,1229,1231-1234,1237-1239,1244-1261,1263-1280,1283,1286-1299,1304-1358
+  s_b03b3a99345ebc::t_f72ed598979ea8 589
+  s_b03b3a99345ebc::t_f0722b891bcd16 880,890
+  s_b03b3a99345ebc::t_95cac29e00a6ca 1235-1236,1240,1242-1243
+  s_b03b3a99345ebc::t_41f4f6dde7de51 26-27
+  s_b03b3a99345ebc::t_9fca2ed4ff8fc0 805-809,811,814-815
+  s_b03b3a99345ebc::t_2918faa474c4fa 28
+src/components/CourseChat.tsx
+  s_b03b3a99345ebc::t_a3b65eaa7b6f7e 47-52,54-56
+  s_b03b3a99345ebc::t_62619ae8039f46 165-176
+  s_b03b3a99345ebc::t_809a601d26a247 71
+  s_b03b3a99345ebc::t_53d0bb8ccac1dd 91-94
+  s_b03b3a99345ebc::t_6dddd088c8f052 127-128
+src/context/GradesContext.tsx
+  s_b03b3a99345ebc::t_63bd1dfab04b83 277
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "a469528f6b675f788270dee73fb782a5ecd08c90",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
