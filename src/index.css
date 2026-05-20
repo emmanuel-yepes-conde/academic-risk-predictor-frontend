@@ -91,6 +91,7 @@
     appearance: none;
     width: 18px;
     height: 18px;
+    margin-top: -7px; /* center thumb on 4px track: (4px - 18px) / 2 */
     background: var(--green-accent);
     border-radius: 50%;
     cursor: pointer;
