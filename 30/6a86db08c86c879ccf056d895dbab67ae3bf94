@@ -1,0 +1,46 @@
+src/services/attendanceService.ts
+  s_b03b3a99345ebc::t_b856b02b2e420b 158-168
+src/pages/Grades.tsx
+  s_b03b3a99345ebc::t_4255c8058f8b41 858
+  s_b03b3a99345ebc::t_d4935380ad9e3b 387-388
+src/components/CourseChat.tsx
+  s_b03b3a99345ebc::t_aed4230f54c770 142-149
+  s_b03b3a99345ebc::t_8c3cfeee6eb612 175
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_f9ae300760a141 269
+  s_b03b3a99345ebc::t_0594fe5b1a9ccf 918
+  s_b03b3a99345ebc::t_3e321a6d2d4a84 198-199
+  s_b03b3a99345ebc::t_ecbe349989ab57 1346
+  s_b03b3a99345ebc::t_e43664e70af921 67-68
+  s_b03b3a99345ebc::t_2a3f748026c408 820-828,830-840
+  s_b03b3a99345ebc::t_97895f8386dd68 15
+  s_b03b3a99345ebc::t_e114737aae07ec 42-55
+  s_b03b3a99345ebc::t_91dd5fd8454640 818-819,829,841-856
+  s_b03b3a99345ebc::t_6973086cc62e1d 1328-1329
+src/pages/MisMaterias.tsx
+  s_b03b3a99345ebc::t_ece6ae10da6f3f 478
+  s_b03b3a99345ebc::t_81c98488a8a66e 22-24,26-31
+  s_b03b3a99345ebc::t_dbdba266f5b51c 451
+  s_b03b3a99345ebc::t_7285138c2708e7 130
+  s_b03b3a99345ebc::t_c1e9d2c4ed812f 268,272
+src/components/JobsPanel.tsx
+  s_b03b3a99345ebc::t_dc7f113daa2b75 53-58,60,95-104,106-147,149,158
+src/services/enrollmentService.ts
+  s_b03b3a99345ebc::t_83d190dfa23ab6 61-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "306a86db08c86c879ccf056d895dbab67ae3bf94",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
