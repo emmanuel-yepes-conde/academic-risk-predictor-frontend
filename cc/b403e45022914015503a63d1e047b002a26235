@@ -1,0 +1,36 @@
+src/main.tsx
+  s_b03b3a99345ebc::t_2c5d5b6dddf68e 13-21
+.env.development
+  s_b03b3a99345ebc::t_369215412007b8 2-3
+.env.production
+  s_b03b3a99345ebc::t_2689c1f461d455 1-4
+src/components/JobsPanel.tsx
+  s_b03b3a99345ebc::t_6ae8a56ba2e661 6-7
+  s_b03b3a99345ebc::t_c1462c41ad370b 48-144,151-152
+  s_b03b3a99345ebc::t_79bedb9e1b068d 363-373
+  s_b03b3a99345ebc::t_3bcb8b7a527c88 312-335
+src/services/attendanceService.ts
+  s_b03b3a99345ebc::t_ebffcf0d603055 101-111
+src/services/jobsService.ts
+  s_b03b3a99345ebc::t_3cac29bc190632 37-40
+public/sw.js
+  s_b03b3a99345ebc::t_c99e0279a4f069 2
+src/pages/AsistenciaProfesor.tsx
+  s_b03b3a99345ebc::t_26508beba86e16 100-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "ccb403e45022914015503a63d1e047b002a26235",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
