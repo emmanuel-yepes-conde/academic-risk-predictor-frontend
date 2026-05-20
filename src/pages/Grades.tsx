@@ -384,6 +384,8 @@ export default function GradesPage({
       // Marcar como registrado manualmente hoy (solo para asistencia, no inasistencia)
       if (present) {
         setManualRegisteredToday(prev => new Set([...prev, studentId]))
+        // Notificar al estudiante por WhatsApp + in-app (fire & forget)
+        void attendanceService.notifyManualAttendance(studentId, course.name, selectedAttendanceCohort)
       }
       toast.success(
         present ? 'Asistencia registrada' : 'Inasistencia registrada',
@@ -853,7 +855,7 @@ export default function GradesPage({
                     type="range" min={0} max={2} step={0.1}
                     value={simBonus}
                     onChange={e => setSimBonus(Number(e.target.value))}
-                    className="w-full accent-green-600"
+                    className="w-full accent-green-600 align-middle"
                   />
                   <div className="flex justify-between text-xs text-usb-faint font-semibold">
                     <span>0.0 (sin cambio)</span>

@@ -155,4 +155,15 @@ export const attendanceService = {
       return res.ok ? res.json() : []
     } catch { return [] }
   },
+
+  /** Notifica al estudiante que el profesor registró su asistencia manualmente. Fire-and-forget. */
+  async notifyManualAttendance(studentId: string, courseName: string, cohort: string): Promise<void> {
+    try {
+      await fetch(`${API_BASE}/api/v1/attendance/notify-manual`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ student_id: studentId, course_name: courseName, cohort }),
+      })
+    } catch { /* fire-and-forget — no relanzar */ }
+  },
 }

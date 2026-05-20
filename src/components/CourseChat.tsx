@@ -139,9 +139,14 @@ export default function CourseChat({ courseId, courseName, predictionContext }: 
         >
           <Bot size={15} style={{ color: 'var(--green-light)' }} />
         </div>
-        <div>
-          <p className="text-white font-extrabold text-sm leading-tight">Asistente de materia</p>
-          <p className="text-white/45 text-xs truncate max-w-[260px]">{courseName}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-extrabold text-sm leading-tight">Risko IA</p>
+          <p className="text-white/45 text-[0.68rem] truncate">{courseName}</p>
+        </div>
+        {/* Indicador de estado */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+          <span className="text-white/40 text-[0.60rem] font-semibold">En línea</span>
         </div>
       </div>
 
@@ -167,7 +172,7 @@ export default function CourseChat({ courseId, courseName, predictionContext }: 
                 className="mt-2 px-3 py-2 rounded-xl text-xs font-semibold max-w-[260px] text-center"
                 style={{ background: 'rgba(0,117,74,0.08)', color: 'var(--green-accent)', border: '1px solid rgba(0,117,74,0.15)' }}
               >
-                🎯 Tengo tu análisis de riesgo listo — puedo responder sobre tu rendimiento y los documentos del curso
+                Tengo tu análisis de riesgo listo — pregúntame sobre tu rendimiento y los documentos del curso
               </div>
             ) : (
               <p className="text-xs max-w-[240px]" style={{ color: 'var(--text-faint)' }}>
