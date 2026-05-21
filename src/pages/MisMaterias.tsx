@@ -25,9 +25,10 @@ import { useTour } from '../hooks/useTour'
 import { useAuth } from '../context/AuthContext'
 
 const MIS_MATERIAS_TOUR_STEPS: Step[] = [
-  { target: '#tour-mis-materias-hero',   title: '👤 Tu perfil académico',  content: 'Aquí ves tu nombre, programa y tu avance de créditos en el semestre.',         placement: 'bottom' },
-  { target: '#tour-mis-materias-stats',  title: '📊 Resumen académico',    content: 'Un vistazo rápido a tus materias, créditos activos y créditos aprobados.',       placement: 'bottom' },
-  { target: '#tour-mis-materias-cursos', title: '📚 Tus materias activas', content: 'Haz clic en cualquier materia para ver predicción IA, notas y asistencias.',    placement: 'top'    },
+  { target: '#tour-mis-materias-hero',   title: '👤 Tu perfil académico',   content: 'Aquí ves tu nombre, programa y tu avance de créditos en el semestre.',         placement: 'bottom' },
+  { target: '#tour-mis-materias-stats',  title: '📊 Resumen académico',     content: 'Un vistazo rápido a tus materias, créditos activos y créditos aprobados.',       placement: 'bottom' },
+  { target: '#tour-mis-materias-cursos', title: '📚 Tus materias activas',  content: 'Haz clic en cualquier materia para ver predicción IA, notas y asistencias.',    placement: 'top'    },
+  { target: '#tour-user-avatar',         title: '🔔 Configura tus alertas', content: 'Haz clic en tu avatar para ir a Mi Perfil. Desde allí puedes activar o desactivar las notificaciones por WhatsApp y correo electrónico según tus preferencias.', placement: 'bottom' },
 ]
 import { enrollmentService, type BackendEnrollment } from '../services/enrollmentService'
 import { courseService, type BackendCourse } from '../services/courseService'

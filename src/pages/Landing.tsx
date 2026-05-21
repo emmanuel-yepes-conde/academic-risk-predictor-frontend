@@ -113,9 +113,10 @@ function Blob({ className, delay = 0 }: { className: string; delay?: number }) {
 // ── Tour steps ────────────────────────────────────────────────────────────────
 
 const TOUR_STEPS: Step[] = [
-  { target: '#tour-nav',      title: '🧭 Tu menú de navegación', content: 'Tienes "Inicio" (esta página) y "Mi Progreso" para ver tus materias y predicción de riesgo.', placement: 'bottom' },
-  { target: '#tour-variables', title: '📊 Variables del predictor', content: 'El modelo analiza 4 variables: nota corte 1, corte 2, corte final y nota total.', placement: 'top' },
-  { target: '#tour-hero-cta', title: '🚀 ¡Inicia tu análisis!', content: 'Al hacer clic, la IA evalúa tus notas por cohorte en menos de 1 segundo y genera un reporte personalizado.', placement: 'top' },
+  { target: '#tour-nav',         title: '🧭 Tu menú de navegación', content: 'Tienes "Inicio" (esta página) y "Mi Progreso" para ver tus materias y predicción de riesgo.', placement: 'bottom' },
+  { target: '#tour-variables',   title: '📊 Variables del predictor', content: 'El modelo analiza 4 variables: nota corte 1, corte 2, corte final y nota total.', placement: 'top' },
+  { target: '#tour-hero-cta',    title: '🚀 ¡Inicia tu análisis!', content: 'Al hacer clic, la IA evalúa tus notas por cohorte en menos de 1 segundo y genera un reporte personalizado.', placement: 'top' },
+  { target: '#tour-user-avatar', title: '🔔 Tus notificaciones', content: 'Haz clic aquí para acceder a tu perfil. Allí puedes habilitar o deshabilitar las notificaciones por WhatsApp y correo electrónico según tus preferencias.', placement: 'bottom' },
 ]
 
 // ── Main ──────────────────────────────────────────────────────────────────────

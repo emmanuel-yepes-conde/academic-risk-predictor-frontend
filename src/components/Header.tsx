@@ -294,6 +294,7 @@ function UserChip({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="relative">
       <button
+        id="tour-user-avatar"
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-white/10 transition-colors group"
         aria-expanded={open}
