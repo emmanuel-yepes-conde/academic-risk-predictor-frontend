@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { BookOpen, RefreshCw } from 'lucide-react'
+import { BookOpen, RefreshCw, Upload } from 'lucide-react'
 import type { Step } from 'react-joyride'
 import { useAuth } from '../context/AuthContext'
 import Header from '../components/Header'
@@ -50,9 +50,10 @@ interface CourseCardProps {
   course:      BackendCourse
   index:       number
   onClick:     () => void
+  onUpload:    () => void
 }
 
-function CourseCard({ course, index, onClick }: CourseCardProps) {
+function CourseCard({ course, index, onClick, onUpload }: CourseCardProps) {
   const [enrollments, setEnrollments] = useState<BackendEnrollment[]>([])
   const [loading,     setLoading]     = useState(true)
   const { user } = useAuth()
@@ -83,14 +84,30 @@ function CourseCard({ course, index, onClick }: CourseCardProps) {
   const pct = total > 0 ? Math.round((withData / total) * 100) : 0
 
   return (
-    <SubjectCard
-      course={{ code: course.code, name: course.name, group: course.section ?? '', components: [] }}
-      studentCount={total}
-      completionPct={pct}
-      atRiskCount={atRisk}
-      onClick={onClick}
-      index={index}
-    />
+    <div className="flex flex-col gap-1.5">
+      <SubjectCard
+        course={{ code: course.code, name: course.name, group: course.section ?? '', components: [] }}
+        studentCount={total}
+        completionPct={pct}
+        atRiskCount={atRisk}
+        onClick={onClick}
+        index={index}
+      />
+      <button
+        onClick={onUpload}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors"
+        style={{
+          background: 'rgba(0,117,74,0.07)',
+          color: 'var(--green-accent)',
+          border: '1px solid rgba(0,117,74,0.15)',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,117,74,0.14)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,117,74,0.07)')}
+      >
+        <Upload size={12} />
+        Subir guía de materia
+      </button>
+    </div>
   )
 }
 
@@ -221,6 +238,7 @@ export default function Dashboard() {
                   course={course}
                   index={i}
                   onClick={() => navigate(`/grades/${course.id}`)}
+                  onUpload={() => setUploadCourse(course)}
                 />
               ))}
             </div>
