@@ -1,0 +1,25 @@
+src/pages/Grades.tsx
+  s_b03b3a99345ebc::t_2814aa0ccfaed7 66,75-82
+  s_b03b3a99345ebc::t_d421f9144aa61a 379-380
+  s_b03b3a99345ebc::t_46590c75865c73 343,346-347
+  s_b03b3a99345ebc::t_18123d730fb78a 387,400-406
+  s_b03b3a99345ebc::t_9097ca587f70cd 84-89,98,102-105,107
+  s_b03b3a99345ebc::t_5c86838dd63139 162
+  s_b03b3a99345ebc::t_65729df8ef55f4 729
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "6dc29dc3fadc757092a04b11156ba3c851fbf67a",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
