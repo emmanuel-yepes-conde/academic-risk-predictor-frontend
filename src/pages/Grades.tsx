@@ -63,6 +63,7 @@ interface AttendanceCounters {
 interface AttendanceRowState {
   enrollmentId: string | null
   counters: Record<CohortKey, AttendanceCounters>
+  manualRegisteredDates: Record<CohortKey, string | null> // fecha YYYY-MM-DD en tz Colombia
 }
 
 const emptyCounters = (): Record<CohortKey, AttendanceCounters> => ({
@@ -71,9 +72,21 @@ const emptyCounters = (): Record<CohortKey, AttendanceCounters> => ({
   third_cohort: { assist: 0, not_asist: 0 },
 })
 
-function parseAttendance(rawGrades: Record<string, unknown> | null): Record<CohortKey, AttendanceCounters> {
-  const base = emptyCounters()
-  if (!rawGrades) return base
+const emptyDates = (): Record<CohortKey, string | null> => ({
+  first_cohort: null, second_cohort: null, third_cohort: null,
+})
+
+/** Fecha de hoy en zona horaria Colombia (YYYY-MM-DD) */
+function todayCol(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+}
+
+function parseAttendance(
+  rawGrades: Record<string, unknown> | null,
+): { counters: Record<CohortKey, AttendanceCounters>; dates: Record<CohortKey, string | null> } {
+  const counters = emptyCounters()
+  const dates = emptyDates()
+  if (!rawGrades) return { counters, dates }
   COHORT_KEYS.forEach((key) => {
     const cohort = rawGrades[key]
     if (!cohort || typeof cohort !== 'object') return
@@ -82,12 +95,16 @@ function parseAttendance(rawGrades: Record<string, unknown> | null): Record<Coho
     const attObj = attendance as Record<string, unknown>
     const assist = Number(attObj.assist ?? 0)
     const notAsist = Number(attObj.not_asist ?? 0)
-    base[key] = {
+    counters[key] = {
       assist: Number.isFinite(assist) ? Math.max(0, Math.round(assist)) : 0,
       not_asist: Number.isFinite(notAsist) ? Math.max(0, Math.round(notAsist)) : 0,
     }
+    // Fecha del último registro manual de asistencia (para bloquear duplicados tras refresco)
+    if (typeof attObj.last_assist_date === 'string' && attObj.last_assist_date) {
+      dates[key] = attObj.last_assist_date
+    }
   })
-  return base
+  return { counters, dates }
 }
 
 function buildDefaultGradesStructure(course: Course): Record<string, unknown> {
@@ -142,7 +159,7 @@ export default function GradesPage({
   const [attendanceRows, setAttendanceRows] = useState<Record<string, AttendanceRowState>>({})
   const [attendanceSavingStudentId, setAttendanceSavingStudentId] = useState<string | null>(null)
   const [attendanceLoadedCourseId, setAttendanceLoadedCourseId] = useState<string | null>(null)
-  const [manualRegisteredToday, setManualRegisteredToday] = useState<Set<string>>(new Set())
+  // manualRegisteredToday eliminado — ahora se usa manualRegisteredDates en attendanceRows (persiste tras refresco)
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([])
   const [sessionHistoryLoading, setSessionHistoryLoading] = useState(false)
   const [sessionHistoryError, setSessionHistoryError] = useState(false)
@@ -323,11 +340,11 @@ export default function GradesPage({
         courseStudentsList.map(async (student) => {
           const enrollment = await enrollmentService.findByCourse(student.id, course.id)
           if (!enrollment) {
-            return [student.id, { enrollmentId: null, counters: emptyCounters() }] as const
+            return [student.id, { enrollmentId: null, counters: emptyCounters(), manualRegisteredDates: emptyDates() }] as const
           }
           const gradeRead = await enrollmentService.getGrades(enrollment.id)
-          const parsed = parseAttendance(gradeRead.grades)
-          return [student.id, { enrollmentId: enrollment.id, counters: parsed }] as const
+          const { counters: parsed, dates: parsedDates } = parseAttendance(gradeRead.grades)
+          return [student.id, { enrollmentId: enrollment.id, counters: parsed, manualRegisteredDates: parsedDates }] as const
         }),
       )
       setAttendanceRows(Object.fromEntries(entries))
@@ -359,13 +376,15 @@ export default function GradesPage({
       cohortObj.attendance = {
         assist: present ? assist + 1 : assist,
         not_asist: present ? notAsist : notAsist + 1,
+        // Persiste la fecha del último registro de asistencia (presencia) para detectar duplicados tras refresco
+        ...(present ? { last_assist_date: todayCol() } : {}),
       }
       nextGrades[selectedAttendanceCohort] = cohortObj
 
       await enrollmentService.saveGrades(row.enrollmentId, nextGrades)
 
       setAttendanceRows(prev => {
-        const previous = prev[studentId] ?? { enrollmentId: row.enrollmentId, counters: emptyCounters() }
+        const previous = prev[studentId] ?? { enrollmentId: row.enrollmentId, counters: emptyCounters(), manualRegisteredDates: emptyDates() }
         const selected = previous.counters[selectedAttendanceCohort] ?? { assist: 0, not_asist: 0 }
         return {
           ...prev,
@@ -378,12 +397,17 @@ export default function GradesPage({
                 not_asist: present ? selected.not_asist : selected.not_asist + 1,
               },
             },
+            // Actualizar fecha del último registro de asistencia en memoria (persiste via JSON en backend)
+            ...(present ? {
+              manualRegisteredDates: {
+                ...(previous.manualRegisteredDates ?? emptyDates()),
+                [selectedAttendanceCohort]: todayCol(),
+              },
+            } : {}),
           },
         }
       })
-      // Marcar como registrado manualmente hoy (solo para asistencia, no inasistencia)
       if (present) {
-        setManualRegisteredToday(prev => new Set([...prev, studentId]))
         // Notificar al estudiante por WhatsApp + in-app (fire & forget)
         void attendanceService.notifyManualAttendance(studentId, course.name, selectedAttendanceCohort)
       }
@@ -702,7 +726,7 @@ export default function GradesPage({
                         const totalNotAsist = COHORT_KEYS.reduce((s, k) => s + (row?.counters[k]?.not_asist ?? 0), 0)
                         const isSaving = attendanceSavingStudentId === student.id
                         const alreadyQR = qrRegisteredToday.has(student.id)
-                        const alreadyManual = manualRegisteredToday.has(student.id)
+                        const alreadyManual = attendanceRows[student.id]?.manualRegisteredDates?.[selectedAttendanceCohort] === todayCol()
                         const alreadyToday = alreadyQR || alreadyManual
                         return (
                           <tr key={student.id} className="border-b border-usb-border last:border-b-0">
