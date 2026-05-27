@@ -1,0 +1,21 @@
+src/components/CourseChat.tsx
+  s_b03b3a99345ebc::t_1b035dc4e7f652 343
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_1591e957d96b14 1014
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "e945831d4b2d47999786c968d66a0e3a6f4220d4",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
