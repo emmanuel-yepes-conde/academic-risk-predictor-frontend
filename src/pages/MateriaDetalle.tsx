@@ -976,6 +976,12 @@ export default function MateriaDetalle() {
                       style={{ background: 'rgba(212,233,226,0.12)', color: 'rgba(212,233,226,0.80)' }}>
                   {course.code}
                 </span>
+                {course.section && (
+                  <span className="text-[0.68rem] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: 'rgba(212,233,226,0.18)', color: '#d4e9e2' }}>
+                    Sección {course.section}
+                  </span>
+                )}
                 <span className="hidden sm:flex items-center gap-1 text-sm flex-shrink-0" style={{ color: 'rgba(212,233,226,0.55)' }}>
                   <Hash size={11} />{course.credits} créditos
                 </span>
