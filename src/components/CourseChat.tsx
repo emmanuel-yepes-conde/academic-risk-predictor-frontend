@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Loader2, Bot, User, BookOpen, FileText } from 'lucide-react'
+import { Send, Loader2, Bot, User, BookOpen, FileText, ChevronDown } from 'lucide-react'
 // react-markdown no disponible en registry interno — renderizador inline mínimo
 function ReactMarkdown({ children }: { children: string; components?: unknown }) {
   const html = (children || '')
@@ -21,11 +21,9 @@ function prepareMarkdown(text: string): string {
   let result = text.replace(/\[([^\]]*?\.pdf[^\]]*?)\]/gi, '').trim()
 
   // 2. Salto de línea antes de cada ítem numerado que sigue a otro texto
-  //    "presentaciones. 2. El verbo" → "presentaciones.\n2. El verbo"
   result = result.replace(/([.!?])\s+(\d{1,2}\.\s)/g, '$1\n$2')
 
   // 3. Salto de línea cuando un ítem numerado sigue a ":" o ","
-  //    "siguientes: 1. Saludos" → "siguientes:\n1. Saludos"
   result = result.replace(/([,:]\s*)(\d{1,2}\.\s)/g, '$1\n$2')
 
   // 4. Salto de línea antes de guiones de lista "- texto"
@@ -54,25 +52,92 @@ interface Props {
   courseId:          string
   courseName:        string
   predictionContext?: PredictionContext
+  fullPage?:         boolean
 }
 
-function EvidenceChip({ ev }: { ev: RagEvidence }) {
+// ─── Evidences section — colapsable ─────────────────────────────────────────
+
+function EvidencesSection({ evidences }: { evidences: RagEvidence[] }) {
+  const [open, setOpen] = useState(false)
+
+  // Deduplicar por file+page
+  const unique = evidences.filter(
+    (ev, i, arr) => arr.findIndex(x => x.file === ev.file && x.page === ev.page) === i
+  )
+
   return (
-    <div
-      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[0.65rem] font-semibold"
-      style={{ background: 'rgba(0,117,74,0.08)', color: 'var(--green-accent)', border: '1px solid rgba(0,117,74,0.15)' }}
-    >
-      <FileText size={10} />
-      {ev.file} · pág. {ev.page}
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 text-[0.68rem] font-semibold transition-colors"
+        style={{ color: 'var(--green-accent)', opacity: 0.75 }}
+        onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+        onMouseLeave={e => (e.currentTarget.style.opacity = '0.75')}
+      >
+        <BookOpen size={11} />
+        <span>{unique.length} {unique.length === 1 ? 'fuente' : 'fuentes'}</span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ display: 'flex' }}
+        >
+          <ChevronDown size={11} />
+        </motion.span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div
+              className="mt-2 rounded-xl px-3 py-2.5 space-y-1.5"
+              style={{
+                background: 'rgba(0,117,74,0.05)',
+                border: '1px solid rgba(0,117,74,0.12)',
+              }}
+            >
+              {unique.map((ev, j) => (
+                <div key={j} className="flex items-start gap-2">
+                  <FileText
+                    size={11}
+                    className="mt-0.5 flex-shrink-0"
+                    style={{ color: 'var(--green-accent)' }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span
+                      className="text-[0.68rem] font-semibold truncate block"
+                      style={{ color: 'var(--text-dark)' }}
+                    >
+                      {ev.file}
+                    </span>
+                    <span
+                      className="text-[0.62rem]"
+                      style={{ color: 'var(--text-faint)' }}
+                    >
+                      Página {ev.page}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
-export default function CourseChat({ courseId, courseName, predictionContext }: Props) {
+export default function CourseChat({ courseId, courseName, predictionContext, fullPage }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
   const bottomRef               = useRef<HTMLDivElement>(null)
+  const scrollRef               = useRef<HTMLDivElement>(null)
   const inputRef                = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -124,8 +189,8 @@ export default function CourseChat({ courseId, courseName, predictionContext }: 
       style={{
         boxShadow: 'var(--shadow-card)',
         border: '1px solid rgba(0,0,0,0.07)',
-        minHeight: '420px',
         height: '100%',
+        minHeight: fullPage ? 0 : '420px',
       }}
     >
       {/* Header */}
@@ -150,8 +215,11 @@ export default function CourseChat({ courseId, courseName, predictionContext }: 
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      {/* Messages — min-h-0 es clave para que el scroll funcione dentro del flex */}
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4"
+      >
         {messages.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -179,6 +247,33 @@ export default function CourseChat({ courseId, courseName, predictionContext }: 
                 Responde basado en los documentos que subió tu docente para esta materia.
               </p>
             )}
+
+            {/* Sugerencias rápidas solo en fullPage */}
+            {fullPage && (
+              <div className="mt-6 flex flex-wrap gap-2 justify-center max-w-md">
+                {[
+                  '¿Cuáles son los temas del curso?',
+                  '¿Qué necesito para pasar la materia?',
+                  '¿Cuál es mi nivel de riesgo actual?',
+                  '¿Qué debo estudiar primero?',
+                ].map(q => (
+                  <button
+                    key={q}
+                    onClick={() => { setInput(q); inputRef.current?.focus() }}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      background: 'rgba(0,117,74,0.07)',
+                      color: 'var(--green-accent)',
+                      border: '1px solid rgba(0,117,74,0.15)',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,117,74,0.14)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,117,74,0.07)')}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -203,8 +298,8 @@ export default function CourseChat({ courseId, courseName, predictionContext }: 
                   : <Bot size={13} style={{ color: 'var(--green-accent)' }} />}
               </div>
 
-              {/* Bubble */}
-              <div className={`flex flex-col gap-1.5 max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+              {/* Bubble + evidences */}
+              <div className={`flex flex-col gap-1 ${fullPage ? 'max-w-[70%]' : 'max-w-[80%]'} ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div
                   className="px-3.5 py-2.5 text-sm leading-relaxed"
                   style={msg.role === 'user'
@@ -225,13 +320,9 @@ export default function CourseChat({ courseId, courseName, predictionContext }: 
                   )}
                 </div>
 
-                {/* Evidences */}
-                {msg.evidences && msg.evidences.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-0.5">
-                    {msg.evidences.map((ev, j) => (
-                      <EvidenceChip key={j} ev={ev} />
-                    ))}
-                  </div>
+                {/* Evidences — colapsable, solo en mensajes del asistente */}
+                {msg.role === 'assistant' && msg.evidences && msg.evidences.length > 0 && (
+                  <EvidencesSection evidences={msg.evidences} />
                 )}
               </div>
             </motion.div>
