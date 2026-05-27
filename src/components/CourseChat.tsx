@@ -340,7 +340,7 @@ export default function CourseChat({ courseId, courseName, predictionContext, fu
         {header}
         <div className="flex flex-1 min-h-0">
           {/* Chat area */}
-          <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             {chatContent}
           </div>
           {/* Sources sidebar — solo desktop */}
