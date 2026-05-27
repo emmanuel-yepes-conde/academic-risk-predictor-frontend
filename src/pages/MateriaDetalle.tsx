@@ -26,6 +26,7 @@ import CourseChat from '../components/CourseChat'
 import TourGuide from '../components/TourGuide'
 import { type Step } from 'react-joyride'
 import { useTour } from '../hooks/useTour'
+import { useConsent } from '../context/ConsentContext'
 import { courseService, type BackendCourse } from '../services/courseService'
 import { predictionService } from '../services/predictionService'
 import {
@@ -599,7 +600,8 @@ export default function MateriaDetalle() {
   const { courseId } = useParams<{ courseId: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { run, onTourEnd } = useTour('student-materia', user?.id)
+  const { consentPending } = useConsent()
+  const { run, onTourEnd } = useTour('student-materia', user?.id, consentPending)
 
   // Course
   const [course, setCourse]               = useState<BackendCourse | null>(null)

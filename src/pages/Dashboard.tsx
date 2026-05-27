@@ -3,10 +3,10 @@
  * Carga los cursos del profesor desde la API y los muestra como tarjetas.
  * Al hacer clic en una tarjeta navega a /grades/:courseId.
  */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { BookOpen, RefreshCw, Upload } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { BookOpen, RefreshCw, Upload, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import type { Step } from 'react-joyride'
 import { useAuth } from '../context/AuthContext'
 import Header from '../components/Header'
@@ -38,8 +38,11 @@ const TOUR_STEPS: Step[] = [
   },
 ]
 
+const PAGE_SIZE = 15
+
+type SortMode = 'default' | 'alpha' | 'students'
+
 // ── risk helpers ──────────────────────────────────────────────────────────────
-// Risk per-enrollment is computed server-side; here we just aggregate counts.
 function computeRisk(_e: BackendEnrollment): 'alto' | 'medio' | 'bajo' | null {
   return null
 }
@@ -47,13 +50,14 @@ function computeRisk(_e: BackendEnrollment): 'alto' | 'medio' | 'bajo' | null {
 // ── Course card ───────────────────────────────────────────────────────────────
 
 interface CourseCardProps {
-  course:      BackendCourse
-  index:       number
-  onClick:     () => void
-  onUpload:    () => void
+  course:           BackendCourse
+  index:            number
+  onClick:          () => void
+  onUpload:         () => void
+  onCountLoaded:    (id: string, count: number) => void
 }
 
-function CourseCard({ course, index, onClick, onUpload }: CourseCardProps) {
+function CourseCard({ course, index, onClick, onUpload, onCountLoaded }: CourseCardProps) {
   const [enrollments, setEnrollments] = useState<BackendEnrollment[]>([])
   const [loading,     setLoading]     = useState(true)
   const { user } = useAuth()
@@ -61,9 +65,8 @@ function CourseCard({ course, index, onClick, onUpload }: CourseCardProps) {
   useEffect(() => {
     if (!user?.professorId) return
     courseService.listCourseStudents(course.id, user.professorId)
-      .then(students => {
-        // load enrollment data for each student to compute risk
-        return Promise.allSettled(
+      .then(students =>
+        Promise.allSettled(
           students.map(s => enrollmentService.listByStudent(s.id))
         ).then(results =>
           results.flatMap(r =>
@@ -72,11 +75,17 @@ function CourseCard({ course, index, onClick, onUpload }: CourseCardProps) {
               : []
           )
         )
+      )
+      .then(data => {
+        setEnrollments(data)
+        onCountLoaded(course.id, data.length)
       })
-      .then(setEnrollments)
-      .catch(() => setEnrollments([]))
+      .catch(() => {
+        setEnrollments([])
+        onCountLoaded(course.id, 0)
+      })
       .finally(() => setLoading(false))
-  }, [course.id, user?.professorId])
+  }, [course.id, user?.professorId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const total    = enrollments.length
   const atRisk   = enrollments.filter(e => computeRisk(e) === 'alto').length
@@ -114,13 +123,20 @@ function CourseCard({ course, index, onClick, onUpload }: CourseCardProps) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const { user }            = useAuth()
-  const navigate            = useNavigate()
-  const { run, onTourEnd }  = useTour('professor-dashboard', user?.id)
-  const [courses, setCourses] = useState<BackendCourse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState<string | null>(null)
+  const { user }           = useAuth()
+  const navigate           = useNavigate()
+  const { run, onTourEnd } = useTour('professor-dashboard', user?.id)
+
+  const [courses, setCourses]         = useState<BackendCourse[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState<string | null>(null)
   const [uploadCourse, setUploadCourse] = useState<BackendCourse | null>(null)
+
+  // Search / sort / pagination
+  const [search, setSearch]   = useState('')
+  const [sort, setSort]       = useState<SortMode>('default')
+  const [page, setPage]       = useState(1)
+  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
 
   const isEmail     = user?.name.includes('@')
   const displayName = isEmail ? user?.name.split('@')[0] : user?.name.split(' ')[0]
@@ -141,9 +157,52 @@ export default function Dashboard() {
 
   useEffect(() => { void load() }, [load])
 
-  const now  = new Date()
-  const hour = now.getHours()
+  const handleCountLoaded = useCallback((id: string, count: number) => {
+    setStudentCounts(prev => ({ ...prev, [id]: count }))
+  }, [])
+
+  // Reset page when search or sort changes
+  useEffect(() => { setPage(1) }, [search, sort])
+
+  const filteredAndSorted = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    let result = q
+      ? courses.filter(c =>
+          c.name.toLowerCase().includes(q) ||
+          c.code.toLowerCase().includes(q) ||
+          (c.section ?? '').toLowerCase().includes(q)
+        )
+      : [...courses]
+
+    if (sort === 'alpha') {
+      result.sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    } else if (sort === 'students') {
+      result.sort((a, b) => (studentCounts[b.id] ?? 0) - (studentCounts[a.id] ?? 0))
+    }
+
+    return result
+  }, [courses, search, sort, studentCounts])
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE))
+  const paginated  = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const now     = new Date()
+  const hour    = now.getHours()
   const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
+
+  const SortButton = ({ mode, label }: { mode: SortMode; label: string }) => (
+    <button
+      onClick={() => setSort(prev => prev === mode ? 'default' : mode)}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+      style={sort === mode
+        ? { background: 'var(--green-accent)', color: 'white' }
+        : { background: 'rgba(0,117,74,0.07)', color: 'var(--green-accent)', border: '1px solid rgba(0,117,74,0.15)' }
+      }
+    >
+      <ArrowUpDown size={11} />
+      {label}
+    </button>
+  )
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--canvas-warm)' }}>
@@ -219,29 +278,150 @@ export default function Dashboard() {
         {/* Course grid */}
         {!loading && !error && courses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="flex items-center justify-between mb-5">
-              <p
-                className="text-xs font-extrabold uppercase tracking-[0.14em]"
-                style={{ color: 'var(--text-faint)' }}
-              >
-                Tus Materias
-              </p>
-              <span className="text-xs font-semibold" style={{ color: 'var(--text-faint)' }}>
-                {courses.length} materia{courses.length !== 1 ? 's' : ''}
+
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: 'var(--text-faint)' }}
+                />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar por nombre, código o grupo…"
+                  className="w-full pl-9 pr-9 py-2 rounded-xl text-sm outline-none transition-all"
+                  style={{
+                    background: 'white',
+                    border: '1px solid rgba(0,0,0,0.09)',
+                    color: 'var(--text-dark)',
+                  }}
+                  onFocus={e => (e.currentTarget.style.border = '1px solid rgba(0,117,74,0.40)')}
+                  onBlur={e  => (e.currentTarget.style.border = '1px solid rgba(0,0,0,0.09)')}
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: 'var(--text-faint)' }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Sort buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <SortButton mode="alpha"    label="A → Z" />
+                <SortButton mode="students" label="Más estudiantes" />
+              </div>
+
+              {/* Count */}
+              <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
+                {filteredAndSorted.length} de {courses.length}
               </span>
             </div>
 
-            <div id="tour-dashboard-courses" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {courses.map((course, i) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  index={i}
-                  onClick={() => navigate(`/grades/${course.id}`)}
-                  onUpload={() => setUploadCourse(course)}
-                />
-              ))}
-            </div>
+            {/* No results */}
+            {filteredAndSorted.length === 0 && (
+              <div className="py-16 text-center">
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-faint)' }}>
+                  No se encontraron materias para «{search}»
+                </p>
+                <button
+                  onClick={() => setSearch('')}
+                  className="mt-3 text-xs font-bold hover:underline"
+                  style={{ color: 'var(--green-accent)' }}
+                >
+                  Limpiar búsqueda
+                </button>
+              </div>
+            )}
+
+            {/* Grid */}
+            {filteredAndSorted.length > 0 && (
+              <>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`${search}-${sort}-${page}`}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18 }}
+                    id="tour-dashboard-courses"
+                    className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
+                  >
+                    {paginated.map((course, i) => (
+                      <CourseCard
+                        key={course.id}
+                        course={course}
+                        index={i}
+                        onClick={() => navigate(`/grades/${course.id}`)}
+                        onUpload={() => setUploadCourse(course)}
+                        onCountLoaded={handleCountLoaded}
+                      />
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-30"
+                      style={{ background: 'white', border: '1px solid rgba(0,0,0,0.09)' }}
+                    >
+                      <ChevronLeft size={15} style={{ color: 'var(--text-dark)' }} />
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                      .reduce<(number | '…')[]>((acc, n, idx, arr) => {
+                        if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push('…')
+                        acc.push(n)
+                        return acc
+                      }, [])
+                      .map((item, idx) =>
+                        item === '…' ? (
+                          <span key={`dots-${idx}`} className="text-xs px-1" style={{ color: 'var(--text-faint)' }}>…</span>
+                        ) : (
+                          <button
+                            key={item}
+                            onClick={() => setPage(item as number)}
+                            className="w-8 h-8 rounded-xl text-xs font-bold transition-all"
+                            style={page === item
+                              ? { background: 'var(--green-accent)', color: 'white' }
+                              : { background: 'white', border: '1px solid rgba(0,0,0,0.09)', color: 'var(--text-dark)' }
+                            }
+                          >
+                            {item}
+                          </button>
+                        )
+                      )
+                    }
+
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-30"
+                      style={{ background: 'white', border: '1px solid rgba(0,0,0,0.09)' }}
+                    >
+                      <ChevronRight size={15} style={{ color: 'var(--text-dark)' }} />
+                    </button>
+
+                    <span className="text-xs ml-2" style={{ color: 'var(--text-faint)' }}>
+                      Página {page} de {totalPages}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+
           </motion.div>
         )}
 

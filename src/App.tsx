@@ -17,6 +17,7 @@ import PerfilPage from './pages/Perfil'
 import ConsentModal from './components/ConsentModal'
 import { consentService } from './services/consentService'
 import { useGrades } from './context/GradesContext'
+import { ConsentContext } from './context/ConsentContext'
 
 // ─── Error Boundary ──────────────────────────────────────────────────────────
 interface EBState { hasError: boolean; message: string }
@@ -149,7 +150,7 @@ function ProfessorGrades() {
 }
 
 // ─── Student consent gate ────────────────────────────────────────────────────
-function StudentConsentGate() {
+function StudentConsentGate({ onPendingChange }: { onPendingChange: (v: boolean) => void }) {
   const { user, logout } = useAuth()
   const [needsConsent, setNeedsConsent] = useState(false)
   const [termsVersion, setTermsVersion] = useState<string | undefined>(undefined)
@@ -157,23 +158,28 @@ function StudentConsentGate() {
   const checkConsent = useCallback(async () => {
     if (!user || user.role !== 'student') {
       setNeedsConsent(false)
+      onPendingChange(false)
       return
     }
     try {
       const status = await consentService.getMine()
       setTermsVersion(status.current_terms_version)
-      setNeedsConsent(!status.has_accepted)
+      const pending = !status.has_accepted
+      setNeedsConsent(pending)
+      onPendingChange(pending)
     } catch {
-      // Si falla la consulta no bloqueamos la UI; otros endpoints exigirán consentimiento.
+      // Si falla la consulta no bloqueamos la UI
       setNeedsConsent(false)
+      onPendingChange(false)
     }
-  }, [user])
+  }, [user, onPendingChange])
 
   useEffect(() => { void checkConsent() }, [checkConsent])
 
   const handleAccept = async () => {
     await consentService.accept()
     setNeedsConsent(false)
+    onPendingChange(false)
   }
 
   if (!user || user.role !== 'student') return null
@@ -192,10 +198,12 @@ function StudentConsentGate() {
 export default function App() {
   const { user } = useAuth()
   const location = useLocation()
+  const [consentPending, setConsentPending] = useState(false)
 
   return (
     <ErrorBoundary>
-      <StudentConsentGate />
+      <ConsentContext.Provider value={{ consentPending }}>
+      <StudentConsentGate onPendingChange={setConsentPending} />
       <AnimatePresence mode="sync" initial={false}>
         <motion.div
           key={location.pathname}
@@ -256,6 +264,7 @@ export default function App() {
           </Routes>
         </motion.div>
       </AnimatePresence>
+      </ConsentContext.Provider>
     </ErrorBoundary>
   )
 }
