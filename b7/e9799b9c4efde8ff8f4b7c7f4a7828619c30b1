@@ -1,0 +1,22 @@
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_c33d529db4bdb8 610
+  s_b03b3a99345ebc::t_2da7614125b079 661-662,664
+  s_b03b3a99345ebc::t_6615ec51cc288d 663
+  s_b03b3a99345ebc::t_982f63ed7309f6 985-991
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "b7e9799b9c4efde8ff8f4b7c7f4a7828619c30b1",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
