@@ -1011,7 +1011,7 @@ export default function MateriaDetalle() {
 
         {/* Content */}
         {!loadingCourse && !courseError && course && (
-          <div className="flex flex-col gap-4 items-start">
+          <div className="flex flex-col gap-4">
 
             {/* ── LEFT PANEL ── */}
             <div className="flex-1 min-w-0 space-y-3">
