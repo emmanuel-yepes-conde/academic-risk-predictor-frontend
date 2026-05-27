@@ -46,10 +46,10 @@ function buildTourSteps(): Step[] {
   return [
     { target: '#tour-materia-header', title: '📚 Tu materia',          content: 'Nombre, código, créditos y período del curso.',                                        placement: 'bottom' },
     { target: '#tour-materia-tabs',   title: '📋 Secciones del curso',  content: 'Navega entre Predicción IA, tus notas y tu historial de asistencia.',                 placement: 'bottom' },
-    { target: isDesktop ? '#tour-materia-chat' : '#tour-chat-fab',
-      title: '🤖 Asistente Risko',
-      content: 'Pregúntale sobre tus notas, el contenido del curso o tu predicción de riesgo.',
-      placement: isDesktop ? 'left' : 'top',
+    { target: '#tour-chat-tab',
+      title: '🤖 Risko IA',
+      content: 'Chatea con el asistente de inteligencia artificial sobre los documentos del curso, tus notas y tu predicción de riesgo académico.',
+      placement: 'bottom',
     },
   ]
 }
@@ -57,7 +57,7 @@ function buildTourSteps(): Step[] {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CohortKey = 'first_cohort' | 'second_cohort' | 'third_cohort'
-type MainTab   = 'prediccion' | 'calificaciones' | 'asistencia'
+type MainTab   = 'prediccion' | 'calificaciones' | 'asistencia' | 'chat'
 
 interface PredictionResult {
   probabilidad_riesgo?: number
@@ -634,8 +634,7 @@ export default function MateriaDetalle() {
   // Prediccion tab
   const [showMathModal, setShowMathModal] = useState(false)
 
-  // Chat drawer (mobile)
-  const [chatOpen, setChatOpen] = useState(false)
+
 
   // Computed attendance
   const attendanceByCohort = useMemo(() => {
@@ -1012,7 +1011,7 @@ export default function MateriaDetalle() {
 
         {/* Content */}
         {!loadingCourse && !courseError && course && (
-          <div className="flex flex-col lg:flex-row gap-4 items-start">
+          <div className={`flex flex-col ${mainTab !== 'chat' ? 'lg:flex-row' : ''} gap-4 items-start`}>
 
             {/* ── LEFT PANEL ── */}
             <div className="flex-1 min-w-0 space-y-3">
@@ -1030,9 +1029,11 @@ export default function MateriaDetalle() {
                   { key: 'calificaciones' as const,   label: 'Calificaciones',  icon: <Award size={13} /> },
                   { key: 'asistencia' as const,       label: 'Mi asistencia',   icon: <CalendarCheck size={13} />,
                     badge: attendanceHistory.length || undefined },
+                  { key: 'chat' as const,             label: 'Risko IA',        icon: <Bot size={13} />, tourId: 'tour-chat-tab' },
                 ]).map(t => (
                   <button
                     key={t.key}
+                    id={'tourId' in t ? t.tourId : undefined}
                     onClick={() => setMainTab(t.key)}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap"
                     style={mainTab === t.key
@@ -1341,81 +1342,42 @@ export default function MateriaDetalle() {
                   )}
                 </motion.div>
               )}
+
+              {/* ── Tab: Risko IA ── */}
+              {mainTab === 'chat' && (
+                <motion.div
+                  key="chat-tab"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{ height: 'calc(100vh - 13rem)', minHeight: '520px' }}
+                >
+                  <CourseChat
+                    courseId={courseId ?? ''}
+                    courseName={course.name}
+                    predictionContext={predictionContext}
+                    fullPage
+                  />
+                </motion.div>
+              )}
             </div>
 
-            {/* ── RIGHT PANEL — Desktop Chat ── */}
-            <div
-              id="tour-materia-chat"
-              className="hidden lg:flex flex-col lg:w-96 xl:w-[420px] lg:sticky lg:top-24"
-              style={{ alignSelf: 'flex-start', height: 'calc(100vh - 6rem)', maxHeight: '780px' }}
-            >
-              <CourseChat
-                courseId={courseId ?? ''}
-                courseName={course.name}
-                predictionContext={predictionContext}
-              />
-            </div>
+            {/* ── RIGHT PANEL — Desktop Chat (solo en tabs que no son chat) ── */}
+            {mainTab !== 'chat' && (
+              <div
+                className="hidden lg:flex flex-col lg:w-96 xl:w-[420px] lg:sticky lg:top-24"
+                style={{ alignSelf: 'flex-start', height: 'calc(100vh - 6rem)', maxHeight: '780px' }}
+              >
+                <CourseChat
+                  courseId={courseId ?? ''}
+                  courseName={course.name}
+                  predictionContext={predictionContext}
+                />
+              </div>
+            )}
 
           </div>
         )}
       </main>
-
-      {/* ── MOBILE FAB ── */}
-      {!loadingCourse && !courseError && course && (
-        <>
-          <button
-            id="tour-chat-fab"
-            onClick={() => setChatOpen(true)}
-            className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95"
-            style={{ background: 'var(--green-accent)', boxShadow: '0 4px 16px rgba(0,117,74,0.35)' }}
-          >
-            <Bot size={22} className="text-white" />
-          </button>
-
-          {/* Slide-up drawer */}
-          <AnimatePresence>
-            {chatOpen && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="lg:hidden fixed inset-0 bg-black/40 z-40"
-                  onClick={() => setChatOpen(false)}
-                />
-                <motion.div
-                  initial={{ y: '100%' }}
-                  animate={{ y: 0 }}
-                  exit={{ y: '100%' }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  className="lg:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden flex flex-col"
-                  style={{ height: '70vh', background: 'white', boxShadow: '0 -4px 40px rgba(0,0,0,0.18)' }}
-                >
-                  <div className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-                       style={{ background: 'var(--green-deep)' }}>
-                    <div className="flex items-center gap-2">
-                      <Bot size={16} className="text-white" />
-                      <span className="text-white font-bold text-sm">Asistente Risko</span>
-                    </div>
-                    <button onClick={() => setChatOpen(false)}
-                            className="w-7 h-7 rounded-full flex items-center justify-center"
-                            style={{ background: 'rgba(255,255,255,0.15)' }}>
-                      <X size={14} className="text-white" />
-                    </button>
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <CourseChat
-                      courseId={courseId ?? ''}
-                      courseName={course.name}
-                      predictionContext={predictionContext}
-                    />
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </>
-      )}
     </div>
   )
 }
