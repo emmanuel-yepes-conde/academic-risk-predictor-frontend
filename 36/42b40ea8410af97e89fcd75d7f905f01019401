@@ -1,0 +1,22 @@
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_77497bd7377248 1346,1352-1353
+  s_b03b3a99345ebc::t_88cb444345fed9 1014
+src/components/CourseChat.tsx
+  s_b03b3a99345ebc::t_8c890719280333 3-6,17,20,30,45-46,48,51,61,68,75-76,78-79,82,84-85,97-164,169-171,188-197,199-203,211,214-218,221,224-225,228,230-231,239-250,256-260,262-263,266-268,270,272-274,282-283,286-287,289,297-300,302,304-305,307-309,313-358
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "3642b40ea8410af97e89fcd75d7f905f01019401",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
