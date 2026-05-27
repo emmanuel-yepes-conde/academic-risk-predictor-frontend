@@ -1011,7 +1011,7 @@ export default function MateriaDetalle() {
 
         {/* Content */}
         {!loadingCourse && !courseError && course && (
-          <div className={`flex flex-col ${mainTab !== 'chat' ? 'lg:flex-row' : ''} gap-4 items-start`}>
+          <div className="flex flex-col gap-4 items-start">
 
             {/* ── LEFT PANEL ── */}
             <div className="flex-1 min-w-0 space-y-3">
@@ -1343,13 +1343,14 @@ export default function MateriaDetalle() {
                 </motion.div>
               )}
 
-              {/* ── Tab: Risko IA ── */}
+              {/* ── Tab: Risko IA — full-screen ── */}
               {mainTab === 'chat' && (
                 <motion.div
                   key="chat-tab"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  style={{ height: 'calc(100vh - 13rem)', minHeight: '520px' }}
+                  className="w-full"
+                  style={{ height: 'calc(100vh - 11rem)', minHeight: '560px' }}
                 >
                   <CourseChat
                     courseId={courseId ?? ''}
@@ -1361,19 +1362,6 @@ export default function MateriaDetalle() {
               )}
             </div>
 
-            {/* ── RIGHT PANEL — Desktop Chat (solo en tabs que no son chat) ── */}
-            {mainTab !== 'chat' && (
-              <div
-                className="hidden lg:flex flex-col lg:w-96 xl:w-[420px] lg:sticky lg:top-24"
-                style={{ alignSelf: 'flex-start', height: 'calc(100vh - 6rem)', maxHeight: '780px' }}
-              >
-                <CourseChat
-                  courseId={courseId ?? ''}
-                  courseName={course.name}
-                  predictionContext={predictionContext}
-                />
-              </div>
-            )}
 
           </div>
         )}
