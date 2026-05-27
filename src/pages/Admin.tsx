@@ -143,14 +143,12 @@ function Modal({
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-        onClick={e => e.stopPropagation()}
         className={`bg-white rounded-3xl shadow-modal w-full ${maxWidth ?? 'max-w-md'} overflow-hidden max-h-[90vh] flex flex-col`}
       >
         {/* Header — always visible */}
@@ -167,7 +165,7 @@ function Modal({
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1">{children}</div>
+        <div className="overflow-y-auto flex-1 min-h-0">{children}</div>
 
         {/* Footer — always visible, outside scroll area */}
         {footer && (
@@ -1585,7 +1583,6 @@ function ConfirmModal({
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
-      onClick={onCancel}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
@@ -1682,14 +1679,12 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-        onClick={e => e.stopPropagation()}
         className="bg-white rounded-3xl shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
       >
         {/* Header */}
@@ -1713,7 +1708,7 @@ function UserDetailDrawer({ user: u, onClose, onStatusChange }: {
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-6">
           {/* Quick stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-usb-canvas rounded-2xl p-3 text-center border border-usb-border">
@@ -1929,17 +1924,32 @@ function UserRow({
   onEdit:   (user: BackendUser) => void
   onDetail: (user: BackendUser) => void
 }) {
-  const toast = useToast()
+  const toast   = useToast()
   const [sending, setSending] = useState(false)
 
+  // ── Cooldown de 24 h por estudiante (persiste en localStorage) ──────────────
+  const COOLDOWN_MS  = 24 * 60 * 60 * 1000
+  const storageKey   = `reminder_sent_${u.id}`
+  const [sentAt, setSentAt] = useState<number | null>(() => {
+    const stored = localStorage.getItem(storageKey)
+    return stored ? parseInt(stored, 10) : null
+  })
+  const isCooling = sentAt !== null && (Date.now() - sentAt < COOLDOWN_MS)
+  const hoursLeft = sentAt
+    ? Math.ceil((COOLDOWN_MS - (Date.now() - sentAt)) / (60 * 60 * 1000))
+    : 0
+
   const handleSendReminder = async () => {
-    if (u.role !== 'STUDENT') return
+    if (u.role !== 'STUDENT' || isCooling) return
     setSending(true)
     try {
       await notificationService.sendPredictorReminder({
         student_email: u.email,
         student_name:  u.full_name,
       })
+      const now = Date.now()
+      localStorage.setItem(storageKey, String(now))
+      setSentAt(now)
       toast.success('Recordatorio enviado', `Se envió un correo a ${u.full_name}.`)
     } catch (err) {
       toast.error('Error al enviar correo', friendlyError(err))
@@ -1989,18 +1999,29 @@ function UserRow({
             <Pencil size={13} />
           </button>
           {u.role === 'STUDENT' && (
-            <button
-              onClick={handleSendReminder}
-              disabled={sending}
-              title="Enviar recordatorio del predictor"
-              className="flex items-center gap-1 text-xs font-semibold disabled:opacity-40 transition-colors px-2 py-1 rounded-lg"
-              style={{ color: '#00754A' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,117,74,0.10)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '' }}
-            >
-              {sending ? <Loader2 size={12} className="animate-spin" /> : <GraduationCap size={12} />}
-              <span className="hidden sm:inline">Recordatorio</span>
-            </button>
+            isCooling ? (
+              <div
+                title={`Recordatorio ya enviado. Disponible en ${hoursLeft}h`}
+                className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg cursor-default select-none"
+                style={{ color: '#9ca3af', background: 'rgba(0,0,0,0.04)' }}
+              >
+                <Clock size={12} />
+                <span className="hidden sm:inline">Enviado</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleSendReminder}
+                disabled={sending}
+                title="Enviar recordatorio del predictor"
+                className="flex items-center gap-1 text-xs font-semibold disabled:opacity-40 transition-colors px-2 py-1 rounded-lg"
+                style={{ color: '#00754A' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,117,74,0.10)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '' }}
+              >
+                {sending ? <Loader2 size={12} className="animate-spin" /> : <GraduationCap size={12} />}
+                <span className="hidden sm:inline">Recordatorio</span>
+              </button>
+            )
           )}
         </div>
       </td>
@@ -3255,14 +3276,12 @@ function TemplatePreviewModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-        onClick={e => e.stopPropagation()}
         className="bg-white rounded-3xl shadow-modal w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
         {/* Header */}
@@ -3292,7 +3311,7 @@ function TemplatePreviewModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {isEmail ? (
             <iframe
               srcDoc={template.preview_html}
