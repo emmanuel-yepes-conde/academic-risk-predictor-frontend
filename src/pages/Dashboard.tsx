@@ -15,7 +15,6 @@ import TourGuide from '../components/TourGuide'
 import { useTour } from '../hooks/useTour'
 import DocumentUploadModal from '../components/DocumentUploadModal'
 import { courseService, type BackendCourse } from '../services/courseService'
-import { enrollmentService, type BackendEnrollment } from '../services/enrollmentService'
 
 const TOUR_STEPS: Step[] = [
   {
@@ -42,63 +41,24 @@ const PAGE_SIZE = 15
 
 type SortMode = 'default' | 'alpha' | 'students'
 
-// ── risk helpers ──────────────────────────────────────────────────────────────
-function computeRisk(_e: BackendEnrollment): 'alto' | 'medio' | 'bajo' | null {
-  return null
-}
-
 // ── Course card ───────────────────────────────────────────────────────────────
 
 interface CourseCardProps {
-  course:           BackendCourse
-  index:            number
-  onClick:          () => void
-  onUpload:         () => void
-  onCountLoaded:    (id: string, count: number) => void
+  course:      BackendCourse
+  index:       number
+  onClick:     () => void
+  onUpload:    () => void
+  studentCount: number
 }
 
-function CourseCard({ course, index, onClick, onUpload, onCountLoaded }: CourseCardProps) {
-  const [enrollments, setEnrollments] = useState<BackendEnrollment[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const { user } = useAuth()
-
-  useEffect(() => {
-    if (!user?.professorId) return
-    courseService.listCourseStudents(course.id, user.professorId)
-      .then(students =>
-        Promise.allSettled(
-          students.map(s => enrollmentService.listByStudent(s.id))
-        ).then(results =>
-          results.flatMap(r =>
-            r.status === 'fulfilled'
-              ? r.value.filter(e => e.course_id === course.id)
-              : []
-          )
-        )
-      )
-      .then(data => {
-        setEnrollments(data)
-        onCountLoaded(course.id, data.length)
-      })
-      .catch(() => {
-        setEnrollments([])
-        onCountLoaded(course.id, 0)
-      })
-      .finally(() => setLoading(false))
-  }, [course.id, user?.professorId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const total    = enrollments.length
-  const atRisk   = enrollments.filter(e => computeRisk(e) === 'alto').length
-  const withData = enrollments.filter(e => e.status === 'ACTIVE').length
-  const pct = total > 0 ? Math.round((withData / total) * 100) : 0
-
+function CourseCard({ course, index, onClick, onUpload, studentCount }: CourseCardProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <SubjectCard
         course={{ code: course.code, name: course.name, group: course.section ?? '', components: [] }}
-        studentCount={total}
-        completionPct={pct}
-        atRiskCount={atRisk}
+        studentCount={studentCount}
+        completionPct={0}
+        atRiskCount={0}
         onClick={onClick}
         index={index}
       />
@@ -146,8 +106,12 @@ export default function Dashboard() {
     setLoading(true)
     setError(null)
     try {
-      const list = await courseService.listByProfessor(user.professorId)
+      const [list, summary] = await Promise.all([
+        courseService.listByProfessor(user.professorId),
+        courseService.getProfessorCoursesSummary(user.professorId).catch(() => ({} as Record<string, number>)),
+      ])
       setCourses(list)
+      setStudentCounts(summary)
     } catch {
       setError('No se pudieron cargar las materias. Verifica tu conexión.')
     } finally {
@@ -156,10 +120,6 @@ export default function Dashboard() {
   }, [user?.professorId])
 
   useEffect(() => { void load() }, [load])
-
-  const handleCountLoaded = useCallback((id: string, count: number) => {
-    setStudentCounts(prev => ({ ...prev, [id]: count }))
-  }, [])
 
   // Reset page when search or sort changes
   useEffect(() => { setPage(1) }, [search, sort])
@@ -361,7 +321,7 @@ export default function Dashboard() {
                         index={i}
                         onClick={() => navigate(`/grades/${course.id}`)}
                         onUpload={() => setUploadCourse(course)}
-                        onCountLoaded={handleCountLoaded}
+                        studentCount={studentCounts[course.id] ?? 0}
                       />
                     ))}
                   </motion.div>

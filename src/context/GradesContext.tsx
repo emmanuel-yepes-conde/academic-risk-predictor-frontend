@@ -15,18 +15,19 @@ import { programService } from '../services/programService'
 import type { BackendUser } from '../services/authService'
 
 interface GradesContextValue {
-  courseList:           Course[]
-  courseStudentsMap:    Record<string, Student[]>
-  grades:               Grade[]
-  lastSaved:            Date | null
-  loadingCourses:       boolean
-  selectedCourseId:     string | null
-  setSelectedCourseId:  (id: string | null) => void
-  updateGrade:          (studentId: string, componentId: string, value: number | null) => void
-  updateComponents:     (courseId: string, components: Course['components']) => void
-  updateCuts:           (courseId: string, cuts: GradeCut[]) => void
-  refreshCourses:       (professorId: string) => Promise<void>
-  clearCourses:         () => void
+  courseList:                Course[]
+  courseStudentsMap:          Record<string, Student[]>
+  grades:                    Grade[]
+  lastSaved:                 Date | null
+  loadingCourses:            boolean
+  selectedCourseId:          string | null
+  setSelectedCourseId:       (id: string | null) => void
+  updateGrade:               (studentId: string, componentId: string, value: number | null) => void
+  updateComponents:          (courseId: string, components: Course['components']) => void
+  updateCuts:                (courseId: string, cuts: GradeCut[]) => void
+  refreshCourses:            (professorId: string) => Promise<void>
+  clearCourses:              () => void
+  removeStudentFromCourse:   (courseId: string, studentId: string) => Promise<void>
 }
 
 const GradesContext = createContext<GradesContextValue | null>(null)
@@ -258,38 +259,40 @@ export function GradesProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Fetch students for each course in parallel
+      // Fetch students for each course SEQUENTIALLY to avoid overwhelming the backend.
+      // Concurrent Promise.all with many courses + students can exhaust the DB connection pool.
       const studentsMap: Record<string, Student[]> = {}
-      const coursesWithStudents = await Promise.all(
-        backendCourses.map(async (bc) => {
-          let backendStudents: BackendUser[] = []
-          let persistedGrades: Record<string, unknown> | null = null
-          try {
-            backendStudents = await courseService.listCourseStudents(bc.id, professorId)
-          } catch { /* empty */ }
-          try {
-            const response = await enrollmentService.getCourseGradesStructure(bc.id)
-            persistedGrades = response.grades
-          } catch { /* empty */ }
+      const coursesWithStudents: Course[] = []
+      for (const bc of backendCourses) {
+        let backendStudents: BackendUser[] = []
+        let persistedGrades: Record<string, unknown> | null = null
+        try {
+          backendStudents = await courseService.listCourseStudents(bc.id, professorId)
+        } catch { /* empty */ }
+        try {
+          const response = await enrollmentService.getCourseGradesStructure(bc.id)
+          persistedGrades = response.grades
+        } catch { /* empty */ }
 
-          const students: Student[] = backendStudents.map(s => ({
-            id:          s.id,
-            studentCode: s.student_institutional_id ?? s.institutional_email ?? s.email,
-            name:        s.full_name,
-            program:     '',
-            semester:    0,
-          }))
-          studentsMap[bc.id] = students
-
-          return backendToFrontend(
-            bc,
-            professorId,
-            students.map(s => s.id),
-            programNames[bc.program_id] ?? bc.program_id,
-            persistedGrades,
-          )
-        }),
-      )
+        const students: Student[] = backendStudents.map(s => ({
+          id:          s.id,
+          studentCode: s.student_institutional_id ?? s.institutional_email ?? s.email,
+          name:        s.full_name,
+          program:     '',
+          semester:    0,
+        }))
+        studentsMap[bc.id] = students
+        coursesWithStudents.push(backendToFrontend(
+          bc,
+          professorId,
+          students.map(s => s.id),
+          programNames[bc.program_id] ?? bc.program_id,
+          persistedGrades,
+        ))
+        // Update UI progressively so professor sees courses appearing one by one
+        setCourseList([...coursesWithStudents])
+        setCourseStudentsMap({ ...studentsMap })
+      }
 
       setCourseStudentsMap(studentsMap)
       setCourseList(coursesWithStudents)
@@ -330,6 +333,24 @@ export function GradesProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  const removeStudentFromCourse = useCallback(async (courseId: string, studentId: string) => {
+    await courseService.unenrollStudent(courseId, studentId)
+    // Update local state immediately
+    setCourseStudentsMap(prev => ({
+      ...prev,
+      [courseId]: (prev[courseId] ?? []).filter(s => s.id !== studentId),
+    }))
+    setCourseList(prev =>
+      prev.map(c =>
+        c.id === courseId
+          ? { ...c, studentIds: c.studentIds.filter(id => id !== studentId) }
+          : c,
+      ),
+    )
+    // Remove grades for this student
+    setGrades(prev => prev.filter(g => g.studentId !== studentId))
+  }, [])
+
   return (
     <GradesContext.Provider
       value={{
@@ -345,6 +366,7 @@ export function GradesProvider({ children }: { children: ReactNode }) {
         updateCuts,
         refreshCourses,
         clearCourses,
+        removeStudentFromCourse,
       }}
     >
       {children}

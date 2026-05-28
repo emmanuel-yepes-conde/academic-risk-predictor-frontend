@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Download, AlertTriangle, CheckCircle2, Upload, FileSpreadsheet, Save, Loader2, Check, X, QrCode, CalendarCheck, Users, ChevronDown, Clock, Sliders, TrendingDown, TrendingUp } from 'lucide-react'
+import { ChevronLeft, Download, AlertTriangle, CheckCircle2, Upload, FileSpreadsheet, Save, Loader2, Check, X, QrCode, CalendarCheck, Users, ChevronDown, Clock, Sliders, TrendingDown, TrendingUp, Trash2 } from 'lucide-react'
 import type { Course, Grade, GradeComponent, GradeCut } from '../types'
 import { useGradeCalculation } from '../hooks/useGradeCalculation'
 import { calcWeightedTotal, getRisk } from '../utils/gradeCalculator'
@@ -168,7 +168,8 @@ export default function GradesPage({
   const [simStudentId, setSimStudentId] = useState<string>('all')
   const { user } = useAuth()
   const { run: tourRun, onTourEnd: tourEnd } = useTour('professor-grades', user?.id)
-  const { courseStudentsMap } = useGrades()
+  const { courseStudentsMap, removeStudentFromCourse } = useGrades()
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
   const courseStudentsList = courseStudentsMap[course.id] ?? []
   const totalPct = course.components.reduce((s, c) => s + c.percentage, 0)
   const cutsTotal = (course.cuts ?? []).reduce((s, c) => s + c.percentage, 0)
@@ -199,29 +200,51 @@ export default function GradesPage({
     let cancelled = false
 
     const loadBackendGrades = async () => {
-      await Promise.allSettled(
-        courseStudentsList.map(async (student) => {
-          try {
-            const enrollment = await enrollmentService.findByCourse(student.id, course.id)
-            if (!enrollment) return
-            const gradeRead = await enrollmentService.getGrades(enrollment.id)
-            if (!gradeRead.grades || cancelled) return
+      // Process students SEQUENTIALLY to avoid overwhelming the backend with concurrent requests.
+      // Promise.all with 30+ students × 2 requests each = 60+ concurrent DB queries.
+      for (const student of courseStudentsList) {
+        if (cancelled) break
+        try {
+          const enrollment = await enrollmentService.findByCourse(student.id, course.id)
+          if (!enrollment || cancelled) continue
+          const gradeRead = await enrollmentService.getGrades(enrollment.id)
+          if (!gradeRead.grades || cancelled) continue
 
-            // Extraer valores de nota del JSONB y mapearlos a componentId
-            COHORT_KEYS.forEach((cohortKey) => {
-              const cohort = gradeRead.grades![cohortKey] as Record<string, unknown> | undefined
-              if (!cohort) return
+          // Extraer valores de nota del JSONB y mapearlos a componentId
+          COHORT_KEYS.forEach((cohortKey) => {
+            const cohort = gradeRead.grades![cohortKey] as Record<string, unknown> | undefined
+            if (!cohort) return
 
-              // Parcial
-              const parcial = cohort.parcial as Record<string, unknown> | undefined
-              if (parcial?.id && parcial.note != null) {
-                const componentId = String(parcial.id)
-                const value = Number(parcial.note)
+            // Parcial
+            const parcial = cohort.parcial as Record<string, unknown> | undefined
+            if (parcial?.id && parcial.note != null) {
+              const componentId = String(parcial.id)
+              const value = Number(parcial.note)
+              if (
+                Number.isFinite(value) &&
+                course.components.some(c => c.id === componentId)
+              ) {
+                const already = grades.find(
+                  g => g.studentId === student.id && g.componentId === componentId,
+                )
+                if (!already || already.value == null) {
+                  onUpdateGrade(student.id, componentId, value)
+                }
+              }
+            }
+
+            // Seguimiento (actividades)
+            const seguimiento = cohort.seguimiento as Record<string, unknown> | undefined
+            if (seguimiento) {
+              Object.values(seguimiento).forEach((raw) => {
+                const activity = raw as Record<string, unknown> | undefined
+                if (!activity?.id || activity.note == null) return
+                const componentId = String(activity.id)
+                const value = Number(activity.note)
                 if (
                   Number.isFinite(value) &&
                   course.components.some(c => c.id === componentId)
                 ) {
-                  // Solo poblar si el estado local no tiene un valor para este par
                   const already = grades.find(
                     g => g.studentId === student.id && g.componentId === componentId,
                   )
@@ -229,35 +252,13 @@ export default function GradesPage({
                     onUpdateGrade(student.id, componentId, value)
                   }
                 }
-              }
-
-              // Seguimiento (actividades)
-              const seguimiento = cohort.seguimiento as Record<string, unknown> | undefined
-              if (seguimiento) {
-                Object.values(seguimiento).forEach((raw) => {
-                  const activity = raw as Record<string, unknown> | undefined
-                  if (!activity?.id || activity.note == null) return
-                  const componentId = String(activity.id)
-                  const value = Number(activity.note)
-                  if (
-                    Number.isFinite(value) &&
-                    course.components.some(c => c.id === componentId)
-                  ) {
-                    const already = grades.find(
-                      g => g.studentId === student.id && g.componentId === componentId,
-                    )
-                    if (!already || already.value == null) {
-                      onUpdateGrade(student.id, componentId, value)
-                    }
-                  }
-                })
-              }
-            })
-          } catch {
-            // Ignorar fallos individuales — no bloquear la UI
-          }
-        }),
-      )
+              })
+            }
+          })
+        } catch {
+          // Ignorar fallos individuales — no bloquear la UI
+        }
+      }
     }
 
     void loadBackendGrades()
@@ -336,17 +337,22 @@ export default function GradesPage({
     setAttendanceLoading(true)
     setAttendanceError(null)
     try {
-      const entries = await Promise.all(
-        courseStudentsList.map(async (student) => {
+      // Sequential to avoid flooding the backend with concurrent requests
+      const entries: [string, AttendanceRowState][] = []
+      for (const student of courseStudentsList) {
+        try {
           const enrollment = await enrollmentService.findByCourse(student.id, course.id)
           if (!enrollment) {
-            return [student.id, { enrollmentId: null, counters: emptyCounters(), manualRegisteredDates: emptyDates() }] as const
+            entries.push([student.id, { enrollmentId: null, counters: emptyCounters(), manualRegisteredDates: emptyDates() }])
+            continue
           }
           const gradeRead = await enrollmentService.getGrades(enrollment.id)
           const { counters: parsed, dates: parsedDates } = parseAttendance(gradeRead.grades)
-          return [student.id, { enrollmentId: enrollment.id, counters: parsed, manualRegisteredDates: parsedDates }] as const
-        }),
-      )
+          entries.push([student.id, { enrollmentId: enrollment.id, counters: parsed, manualRegisteredDates: parsedDates }])
+        } catch {
+          entries.push([student.id, { enrollmentId: null, counters: emptyCounters(), manualRegisteredDates: emptyDates() }])
+        }
+      }
       setAttendanceRows(Object.fromEntries(entries))
       setAttendanceLoadedCourseId(course.id)
     } catch (err) {
@@ -642,7 +648,60 @@ export default function GradesPage({
           className="bg-white rounded-2xl shadow-card border border-usb-border overflow-hidden"
         >
           {activeTab === 'grades' && (
-            <GradeTable course={course} grades={grades} students={courseStudentsList} onUpdateGrade={onUpdateGrade} />
+            <>
+              <GradeTable course={course} grades={grades} students={courseStudentsList} onUpdateGrade={onUpdateGrade} />
+              {/* ── Remove student section ── */}
+              {courseStudentsList.length > 0 && (
+                <div className="border-t border-usb-border px-5 py-4">
+                  <details className="group">
+                    <summary className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-usb-muted hover:text-usb-text transition-colors list-none">
+                      <Users size={13} />
+                      Gestión de matriculados ({courseStudentsList.length} estudiantes)
+                      <ChevronDown size={12} className="ml-auto group-open:rotate-180 transition-transform duration-200" />
+                    </summary>
+                    <div className="mt-3 space-y-1.5">
+                      {courseStudentsList.map(student => (
+                        <div
+                          key={student.id}
+                          className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl"
+                          style={{ background: 'var(--canvas-warm)', border: '1px solid rgba(0,0,0,0.06)' }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-usb-text truncate">{student.name}</p>
+                            <p className="text-xs text-usb-faint font-mono">{student.studentCode}</p>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`¿Eliminar a ${student.name} del curso? Esta acción no se puede deshacer.`)) return
+                              setRemovingStudentId(student.id)
+                              try {
+                                await removeStudentFromCourse(course.id, student.id)
+                                toast.success('Estudiante eliminado', `${student.name} fue desvinculado del curso.`)
+                              } catch (err) {
+                                toast.error('No se pudo eliminar', friendlyError(err))
+                              } finally {
+                                setRemovingStudentId(null)
+                              }
+                            }}
+                            disabled={removingStudentId === student.id}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            style={{ borderColor: '#fca5a5', color: '#b91c1c', background: '#fff5f5' }}
+                            onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#fee2e2' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#fff5f5' }}
+                          >
+                            {removingStudentId === student.id
+                              ? <Loader2 size={11} className="animate-spin" />
+                              : <Trash2 size={11} />
+                            }
+                            Quitar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              )}
+            </>
           )}
           {activeTab === 'config' && (
             <div className="p-5">

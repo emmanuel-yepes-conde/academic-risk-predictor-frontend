@@ -1370,7 +1370,7 @@ export default function MateriaDetalle() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="w-full"
-                  style={{ height: 'calc(100vh - 11rem)', minHeight: '560px' }}
+                  style={{ height: 'calc(100vh - 11rem)', minHeight: '560px', overflow: 'hidden' }}
                 >
                   <CourseChat
                     courseId={courseId ?? ''}

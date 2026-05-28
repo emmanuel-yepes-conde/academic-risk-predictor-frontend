@@ -111,4 +111,17 @@ export const courseService = {
   async saveEvaluationConfig(courseId: string, cuts: EvaluationConfigCutInput[]): Promise<BackendCourse> {
     return api.patch<BackendCourse>(`/courses/${courseId}/evaluation-config`, { cuts })
   },
+
+  /**
+   * Devuelve {course_id: student_count} para todos los cursos del profesor
+   * en una sola query (evita el N+1 del dashboard).
+   */
+  async getProfessorCoursesSummary(professorId: string): Promise<Record<string, number>> {
+    return api.get<Record<string, number>>(`/professors/${professorId}/courses-summary`)
+  },
+
+  /** Elimina la inscripción de un estudiante de un curso. */
+  async unenrollStudent(courseId: string, studentId: string): Promise<void> {
+    await api.delete(`/courses/${courseId}/students/${studentId}`)
+  },
 }
