@@ -1,0 +1,20 @@
+src/pages/Dashboard.tsx
+  s_b03b3a99345ebc::t_74afc459f97e65 90,98-109,119,130-151
+  s_b03b3a99345ebc::t_338707ed5016ba 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "4added3900a90f98362ae2551b89df700c463fe8",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
