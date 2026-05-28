@@ -215,7 +215,11 @@ export default function CourseChat({ courseId, courseName, predictionContext, fu
   const chatContent = (
     <>
       {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4"
+        style={{ overscrollBehavior: 'contain' }}
+        onWheel={e => { e.stopPropagation() }}
+      >
         {messages.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
