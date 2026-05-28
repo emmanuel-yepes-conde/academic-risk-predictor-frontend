@@ -263,10 +263,11 @@ export default function GradesPage({
 
     void loadBackendGrades()
     return () => { cancelled = true }
-  // Only re-run when the course changes, NOT when courseStudentsList.length changes
-  // (GradesContext loads students sequentially; reacting to length would re-fire 30×)
+  // Depends on courseStudentsList.length so it re-runs when students finish loading.
+  // GradesContext now does a single setState at the end (not per-student), so this
+  // fires at most twice: once with 0 students (early return), once with all students.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course.id])
+  }, [course.id, courseStudentsList.length])
 
   const handleImport = (imported: Grade[]) => {
     imported.forEach(g => {
@@ -362,8 +363,7 @@ export default function GradesPage({
     } finally {
       setAttendanceLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course.id])
+  }, [course.id, courseStudentsList])
 
   const registerAttendance = useCallback(async (studentId: string, present: boolean) => {
     const row = attendanceRows[studentId]
