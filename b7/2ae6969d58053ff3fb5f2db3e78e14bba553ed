@@ -1,0 +1,19 @@
+src/context/GradesContext.tsx
+  s_b03b3a99345ebc::t_24fcb524917bab 245,257-270,272-310,312-315
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "b72ae6969d58053ff3fb5f2db3e78e14bba553ed",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
