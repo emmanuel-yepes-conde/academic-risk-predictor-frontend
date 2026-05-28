@@ -73,15 +73,15 @@ export default function ReferralsPage() {
       setCourse(courseData)
       setReferrals(courseRefs)
 
-      // Build enrollment_id → student map
+      // Build enrollment_id → student map — sequential to avoid overwhelming the backend
       const enrollMap: Record<string, BackendUser> = {}
-      await Promise.allSettled(
-        studentList.map(async s => {
+      for (const s of studentList) {
+        try {
           const enrollments = await enrollmentService.listByStudent(s.id)
           const e = enrollments.find(en => en.course_id === courseId)
           if (e) enrollMap[e.id] = s
-        })
-      )
+        } catch { /* ignore individual failures */ }
+      }
       setStudents(enrollMap)
     } catch {
       setError('No se pudieron cargar las remisiones.')

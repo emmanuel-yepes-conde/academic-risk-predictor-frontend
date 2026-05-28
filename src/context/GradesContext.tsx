@@ -242,20 +242,15 @@ export function GradesProvider({ children }: { children: ReactNode }) {
     try {
       const backendCourses = await courseService.listByProfessor(professorId)
 
-      // Collect unique program IDs and resolve their names
+      // Collect unique program IDs and resolve their names — sequential to avoid overwhelming the backend
       const programIds = [...new Set(backendCourses.map(bc => bc.program_id).filter(Boolean))]
       const programNames: Record<string, string> = {}
-      const progResults = await Promise.allSettled(
-        programIds.map(async (pid) => {
+      for (const pid of programIds) {
+        try {
           const prog = await programService.getProgram(pid)
-          return { pid, name: prog.program_name }
-        }),
-      )
-      for (const r of progResults) {
-        if (r.status === 'fulfilled') {
-          programNames[r.value.pid] = r.value.name
-        } else {
-          console.warn('[GradesContext] Could not resolve program name:', r.reason)
+          programNames[pid] = prog.program_name
+        } catch {
+          console.warn('[GradesContext] Could not resolve program name for:', pid)
         }
       }
 
