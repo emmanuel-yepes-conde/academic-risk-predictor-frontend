@@ -607,6 +607,7 @@ export default function MateriaDetalle() {
   const [course, setCourse]               = useState<BackendCourse | null>(null)
   const [loadingCourse, setLoadingCourse] = useState(true)
   const [courseError, setCourseError]     = useState<string | null>(null)
+  const [professorName, setProfessorName] = useState<string | null>(null)
 
   // Grades
   const [gradesData, setGradesData]         = useState<BackendGradesRead | null>(null)
@@ -657,6 +658,10 @@ export default function MateriaDetalle() {
     try {
       const c = await courseService.getById(courseId)
       setCourse(c)
+      // Carga el nombre del profesor en paralelo (sin bloquear)
+      courseService.getCourseProf(courseId)
+        .then(prof => setProfessorName(prof.full_name ?? prof.email ?? null))
+        .catch(() => setProfessorName(null))
     } catch {
       setCourseError('No se pudo cargar la información del curso.')
     } finally {
@@ -971,12 +976,25 @@ export default function MateriaDetalle() {
                       style={{ background: 'rgba(212,233,226,0.12)', color: 'rgba(212,233,226,0.80)' }}>
                   {course.code}
                 </span>
+                {course.section && (
+                  <span className="text-[0.68rem] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: 'rgba(212,233,226,0.18)', color: '#d4e9e2' }}>
+                    Sección {course.section}
+                  </span>
+                )}
                 <span className="hidden sm:flex items-center gap-1 text-sm flex-shrink-0" style={{ color: 'rgba(212,233,226,0.55)' }}>
                   <Hash size={11} />{course.credits} créditos
                 </span>
                 <span className="hidden sm:flex items-center gap-1 text-sm flex-shrink-0" style={{ color: 'rgba(212,233,226,0.55)' }}>
                   <Calendar size={11} />{course.academic_period}
                 </span>
+                {professorName && (
+                  <span className="flex items-center gap-1 text-xs flex-shrink-0 px-2.5 py-0.5 rounded-full"
+                        style={{ background: 'rgba(212,233,226,0.12)', color: 'rgba(212,233,226,0.80)' }}>
+                    <GraduationCap size={11} />
+                    {professorName}
+                  </span>
+                )}
                 {/* QR button */}
                 <button
                   onClick={() => navigate('/asistencia')}
