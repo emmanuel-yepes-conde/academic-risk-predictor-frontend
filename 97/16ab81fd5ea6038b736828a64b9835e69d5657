@@ -1,0 +1,28 @@
+src/pages/EstadisticasProfesor.tsx
+  s_b03b3a99345ebc::t_ad18aad9f524e2 54,57-58,60-62,66-75
+src/pages/Prediccion.tsx
+  s_b03b3a99345ebc::t_6af634005589de 1056-1064
+src/context/GradesContext.tsx
+  s_b03b3a99345ebc::t_697ae83ba9a61d 245,248-249,251-253
+src/pages/Referrals.tsx
+  s_b03b3a99345ebc::t_3381ee912ca3b2 76,78-79,83-84
+src/pages/MisMaterias.tsx
+  s_b03b3a99345ebc::t_3b7ea4d029a2ab 197-200,205-206,217-220
+  s_b03b3a99345ebc::t_cd7670e8e61a4a 181-184,186-188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "9716ab81fd5ea6038b736828a64b9835e69d5657",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
