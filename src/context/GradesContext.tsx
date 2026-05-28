@@ -289,11 +289,10 @@ export function GradesProvider({ children }: { children: ReactNode }) {
           programNames[bc.program_id] ?? bc.program_id,
           persistedGrades,
         ))
-        // Update UI progressively so professor sees courses appearing one by one
-        setCourseList([...coursesWithStudents])
-        setCourseStudentsMap({ ...studentsMap })
       }
 
+      // Single update at the end — intermediate updates caused Grades.tsx useEffects
+      // to re-fire once per student added, generating cascading requests.
       setCourseStudentsMap(studentsMap)
       setCourseList(coursesWithStudents)
     } catch (err) {
