@@ -1,0 +1,38 @@
+src/context/GradesContext.tsx
+  s_b03b3a99345ebc::t_50c0c854c80bce 18-30
+  s_b03b3a99345ebc::t_ffe587f2848171 262-263,265-295
+  s_b03b3a99345ebc::t_af31a3dd043ccc 336-353
+  s_b03b3a99345ebc::t_cd69ca82e5b1a7 369
+src/pages/Grades.tsx
+  s_b03b3a99345ebc::t_87f61b8030319c 340-343,346-347,351-355
+  s_b03b3a99345ebc::t_71fb6b1ce4bca6 203-243,255-261
+  s_b03b3a99345ebc::t_c2a35c92171ea8 4
+  s_b03b3a99345ebc::t_aeda104d031b73 171-172
+  s_b03b3a99345ebc::t_9dd0861036a9e4 651-704
+src/pages/Dashboard.tsx
+  s_b03b3a99345ebc::t_5f3a3e566cd43f 324
+  s_b03b3a99345ebc::t_9e1337b3966ac8 109-112,114
+  s_b03b3a99345ebc::t_16d9e7fd2efa43 47-51,54,59-61
+src/services/courseService.ts
+  s_b03b3a99345ebc::t_64794445217c98 114-126
+src/components/CourseChat.tsx
+  s_b03b3a99345ebc::t_82ef7959706a6f 218-222
+src/pages/MateriaDetalle.tsx
+  s_b03b3a99345ebc::t_e4930c44dfd5fb 1373
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "3d96f0ae4bc4cd91bbc54f0a3800f4d1e4fd0b73",
+  "prompts": {},
+  "sessions": {
+    "s_b03b3a99345ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "379dbf03-6b10-4ee4-83b4-56a99a81b41a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "daforonda_meli <davidlujan.foronda@mercadolibre.com.co>"
+    }
+  }
+}
