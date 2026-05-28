@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, RefreshCw, Upload, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import type { Step } from 'react-joyride'
 import { useAuth } from '../context/AuthContext'
+import { useGrades } from '../context/GradesContext'
 import Header from '../components/Header'
 import SubjectCard from '../components/SubjectCard'
 import TourGuide from '../components/TourGuide'
@@ -86,6 +87,7 @@ export default function Dashboard() {
   const { user }           = useAuth()
   const navigate           = useNavigate()
   const { run, onTourEnd } = useTour('professor-dashboard', user?.id)
+  const { courseStudentsMap, courseList, loadingCourses } = useGrades()
 
   const [courses, setCourses]         = useState<BackendCourse[]>([])
   const [loading, setLoading]         = useState(true)
@@ -93,10 +95,18 @@ export default function Dashboard() {
   const [uploadCourse, setUploadCourse] = useState<BackendCourse | null>(null)
 
   // Search / sort / pagination
-  const [search, setSearch]   = useState('')
-  const [sort, setSort]       = useState<SortMode>('default')
-  const [page, setPage]       = useState(1)
-  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
+  const [search, setSearch] = useState('')
+  const [sort, setSort]     = useState<SortMode>('default')
+  const [page, setPage]     = useState(1)
+
+  // Derive student counts from GradesContext (populated sequentially — no extra requests)
+  const studentCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {}
+    for (const [courseId, students] of Object.entries(courseStudentsMap)) {
+      counts[courseId] = students.length
+    }
+    return counts
+  }, [courseStudentsMap])
 
   const isEmail     = user?.name.includes('@')
   const displayName = isEmail ? user?.name.split('@')[0] : user?.name.split(' ')[0]
@@ -106,12 +116,8 @@ export default function Dashboard() {
     setLoading(true)
     setError(null)
     try {
-      const [list, summary] = await Promise.all([
-        courseService.listByProfessor(user.professorId),
-        courseService.getProfessorCoursesSummary(user.professorId).catch(() => ({} as Record<string, number>)),
-      ])
+      const list = await courseService.listByProfessor(user.professorId)
       setCourses(list)
-      setStudentCounts(summary)
     } catch {
       setError('No se pudieron cargar las materias. Verifica tu conexión.')
     } finally {
@@ -120,6 +126,29 @@ export default function Dashboard() {
   }, [user?.professorId])
 
   useEffect(() => { void load() }, [load])
+
+  // Also sync from GradesContext courses if available (avoids duplicate requests)
+  useEffect(() => {
+    if (!loadingCourses && courseList.length > 0 && courses.length === 0) {
+      // GradesContext already loaded courses — reuse them to avoid extra API call
+      setCourses(
+        courseList.map(c => ({
+          id: c.id,
+          subject_id: '',
+          section: c.group,
+          academic_period: c.semester,
+          professor_id: c.professorId,
+          status: 'ACTIVE' as const,
+          created_at: '',
+          code: c.code,
+          name: c.name,
+          credits: 0,
+          program_id: '',
+        }))
+      )
+      setLoading(false)
+    }
+  }, [courseList, loadingCourses, courses.length])
 
   // Reset page when search or sort changes
   useEffect(() => { setPage(1) }, [search, sort])
