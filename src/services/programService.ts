@@ -81,7 +81,7 @@ export const programService = {
   },
 
   /** List all programs (global, no university filter). */
-  async listAll(skip = 0, limit = 200): Promise<BackendProgram[]> {
+  async listAll(skip = 0, limit = 50): Promise<BackendProgram[]> {
     return api.get<BackendProgram[]>(`/programs?skip=${skip}&limit=${limit}`)
   },
 
