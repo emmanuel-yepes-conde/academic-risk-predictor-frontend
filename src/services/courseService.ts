@@ -56,12 +56,14 @@ export const courseService = {
 
   /** Lista secciones de un programa. */
   async listByProgram(programId: string): Promise<BackendCourse[]> {
-    return api.get<BackendCourse[]>(`/programs/${programId}/courses`)
+    const res = await api.get<BackendCourse[] | PaginatedResponse<BackendCourse>>(`/programs/${programId}/courses`)
+    return Array.isArray(res) ? res : (res.data ?? [])
   },
 
   /** Lista secciones asignadas a un profesor. */
   async listByProfessor(professorId: string): Promise<BackendCourse[]> {
-    return api.get<BackendCourse[]>(`/professors/${professorId}/courses`)
+    const res = await api.get<BackendCourse[] | PaginatedResponse<BackendCourse>>(`/professors/${professorId}/courses`)
+    return Array.isArray(res) ? res : (res.data ?? [])
   },
 
   /** Obtiene el profesor asignado a una sección. */
@@ -71,9 +73,10 @@ export const courseService = {
 
   /** Lista estudiantes inscritos en una sección. */
   async listCourseStudents(courseId: string, professorId: string): Promise<BackendUser[]> {
-    return api.get<BackendUser[]>(
+    const res = await api.get<BackendUser[] | PaginatedResponse<BackendUser>>(
       `/courses/${courseId}/students?professor_id=${professorId}`,
     )
+    return Array.isArray(res) ? res : (res.data ?? [])
   },
 
   /** Obtiene una sección por ID. */
