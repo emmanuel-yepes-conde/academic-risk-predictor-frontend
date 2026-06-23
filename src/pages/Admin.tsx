@@ -2535,12 +2535,16 @@ function CourseDetailView({
   onAssignProf:  () => void
   onEnroll:      () => void
 }) {
+  const PAGE_SIZE = 15
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const filtered = students.filter(s =>
     s.full_name.toLowerCase().includes(search.toLowerCase()) ||
     s.email.toLowerCase().includes(search.toLowerCase()) ||
     (s.institutional_email ?? '').toLowerCase().includes(search.toLowerCase())
   )
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="space-y-6">
@@ -2600,7 +2604,7 @@ function CourseDetailView({
                 className="pl-8 pr-4 py-2 text-xs bg-white border border-usb-border rounded-xl focus:outline-none focus:border-green-accent transition-all w-52"
                 placeholder="Buscar estudiante…"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => { setSearch(e.target.value); setPage(1) }}
               />
             </div>
           )}
@@ -2628,7 +2632,7 @@ function CourseDetailView({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((student, i) => (
+                {paginated.map((student, i) => (
                   <tr key={student.id} className={i % 2 === 0 ? '' : 'bg-usb-canvas/50'}>
                     <td className="px-5 py-3 font-semibold text-usb-text">{student.full_name}</td>
                     <td className="px-5 py-3 text-usb-muted">{student.institutional_email || student.email}</td>
@@ -2642,6 +2646,29 @@ function CourseDetailView({
                 ))}
               </tbody>
             </table>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-usb-border">
+                <span className="text-xs text-usb-muted">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-usb-border text-usb-muted hover:text-usb-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← Anterior
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-usb-border text-usb-muted hover:text-usb-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
