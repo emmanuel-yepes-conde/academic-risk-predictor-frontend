@@ -83,7 +83,7 @@ export const programService = {
   /** List all programs (global, no university filter). */
   async listAll(skip = 0, limit = 50): Promise<BackendProgram[]> {
     const res = await api.get<BackendProgram[] | PaginatedResponse<BackendProgram>>(`/programs?skip=${skip}&limit=${limit}`)
-    return Array.isArray(res) ? res : res.data
+    return Array.isArray(res) ? res : (res.data ?? [])
   },
 
   // ── Compatibility stubs (universities removed from backend) ───────────────

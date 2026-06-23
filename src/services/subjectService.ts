@@ -4,6 +4,7 @@
  */
 
 import { api } from './api'
+import type { PaginatedResponse } from './userService'
 
 export interface BackendSubject {
   id: string
@@ -46,7 +47,8 @@ export interface SubjectBulkUploadResponse {
 export const subjectService = {
   /** Lista las materias de un programa. */
   async listByProgram(programId: string): Promise<BackendSubject[]> {
-    return api.get<BackendSubject[]>(`/programs/${programId}/subjects`)
+    const res = await api.get<BackendSubject[] | PaginatedResponse<BackendSubject>>(`/programs/${programId}/subjects`)
+    return Array.isArray(res) ? res : (res.data ?? [])
   },
 
   /** Crea una materia. */
