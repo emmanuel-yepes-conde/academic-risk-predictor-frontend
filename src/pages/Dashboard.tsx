@@ -9,13 +9,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, Upload, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import type { Step } from 'react-joyride'
 import { useAuth } from '../context/AuthContext'
-import { useGrades } from '../context/GradesContext'
 import Header from '../components/Header'
 import SubjectCard from '../components/SubjectCard'
 import TourGuide from '../components/TourGuide'
 import { useTour } from '../hooks/useTour'
 import DocumentUploadModal from '../components/DocumentUploadModal'
-import type { BackendCourse } from '../services/courseService'
+import { courseService, type BackendCourse } from '../services/courseService'
 
 const TOUR_STEPS: Step[] = [
   {
@@ -87,55 +86,48 @@ export default function Dashboard() {
   const { user }           = useAuth()
   const navigate           = useNavigate()
   const { run, onTourEnd } = useTour('professor-dashboard', user?.id)
-  const { courseStudentsMap, courseList, loadingCourses, refreshCourses } = useGrades()
 
-  const [uploadCourse, setUploadCourse] = useState<BackendCourse | null>(null)
+  const [courses, setCourses]             = useState<BackendCourse[]>([])
+  const [loading, setLoading]             = useState(false)
+  const [total, setTotal]                 = useState(0)
+  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
+  const [uploadCourse, setUploadCourse]   = useState<BackendCourse | null>(null)
 
-  // Search / sort / pagination
   const [search, setSearch] = useState('')
   const [sort, setSort]     = useState<SortMode>('default')
   const [page, setPage]     = useState(1)
 
-  // Derive course list directly from GradesContext — no duplicate API call needed.
-  // GradesContext already loads courses on login; this just maps to BackendCourse shape.
-  const courses = useMemo<BackendCourse[]>(() =>
-    courseList.map(c => ({
-      id:              c.id,
-      subject_id:      '',
-      section:         c.group,
-      academic_period: c.semester,
-      professor_id:    c.professorId,
-      status:          'ACTIVE' as const,
-      created_at:      '',
-      code:            c.code,
-      name:            c.name,
-      credits:         0,
-      program_id:      c.program ?? '',
-    })),
-    [courseList],
-  )
-
-  // Derive student counts from GradesContext (populated in batches — no extra requests)
-  const studentCounts = useMemo<Record<string, number>>(() => {
-    const counts: Record<string, number> = {}
-    for (const [courseId, students] of Object.entries(courseStudentsMap)) {
-      counts[courseId] = students.length
-    }
-    return counts
-  }, [courseStudentsMap])
-
-  // Trigger course load if the professor lands on Dashboard directly
-  // (GradesContext only loads via ProfessorGrades otherwise)
   const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
+
+  // Fetch current page from backend on page change
   useEffect(() => {
-    if (professorId && courseList.length === 0 && !loadingCourses) {
-      void refreshCourses(professorId)
-    }
-  }, [professorId, courseList.length, loadingCourses, refreshCourses])
+    if (!professorId) return
+    let cancelled = false
+    setLoading(true)
+    const skip = (page - 1) * PAGE_SIZE
+    courseService.listByProfessorPaginated(professorId, skip, PAGE_SIZE)
+      .then(({ courses: data, total: t }) => {
+        if (cancelled) return
+        setCourses(data)
+        setTotal(t)
+      })
+      .catch(() => { if (!cancelled) setCourses([]) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [professorId, page])
+
+  // Fetch student counts once via summary endpoint (1 call for all courses)
+  useEffect(() => {
+    if (!professorId) return
+    courseService.getProfessorCoursesSummary(professorId)
+      .then(setStudentCounts)
+      .catch(() => {})
+  }, [professorId])
 
   // Reset page when search or sort changes
   useEffect(() => { setPage(1) }, [search, sort])
 
+  // Client-side filter + sort within the current page
   const filteredAndSorted = useMemo(() => {
     const q = search.trim().toLowerCase()
     let result = q
@@ -155,8 +147,7 @@ export default function Dashboard() {
     return result
   }, [courses, search, sort, studentCounts])
 
-  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE))
-  const paginated  = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const isEmail     = user?.name.includes('@')
   const displayName = isEmail ? user?.name.split('@')[0] : user?.name.split(' ')[0]
@@ -203,8 +194,7 @@ export default function Dashboard() {
           </p>
         </motion.div>
 
-        {/* Loading — uses GradesContext Phase 1 flag (clears as soon as course list arrives) */}
-        {loadingCourses && courses.length === 0 && (
+        {loading && courses.length === 0 && (
           <div className="flex items-center justify-center py-20">
             <div
               className="w-10 h-10 rounded-full border-4 animate-spin"
@@ -214,7 +204,7 @@ export default function Dashboard() {
         )}
 
         {/* Empty state */}
-        {!loadingCourses && courses.length === 0 && (
+        {!loading && courses.length === 0 && (
           <div
             className="p-12 bg-white rounded-2xl border-2 border-dashed text-center"
             style={{ borderColor: 'rgba(0,0,0,0.10)' }}
@@ -281,7 +271,7 @@ export default function Dashboard() {
 
               {/* Count */}
               <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
-                {filteredAndSorted.length} de {courses.length}
+                {filteredAndSorted.length} de {total}
               </span>
             </div>
 
@@ -314,7 +304,7 @@ export default function Dashboard() {
                     id="tour-dashboard-courses"
                     className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
                   >
-                    {paginated.map((course, i) => (
+                    {filteredAndSorted.map((course, i) => (
                       <CourseCard
                         key={course.id}
                         course={course}
