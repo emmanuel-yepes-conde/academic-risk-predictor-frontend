@@ -6,6 +6,7 @@ interface CourseDisplay {
   code:        string
   name:        string
   group:       string
+  period?:     string
   components?: { length?: number }[] | null
 }
 
@@ -31,9 +32,16 @@ export default function SubjectCard({ course, studentCount, completionPct, atRis
         {/* Top row */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <span className="inline-block bg-ar-cyan/10 text-ar-cyan text-[0.68rem] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-2">
-              {course.code} · {course.group}
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              <span className="inline-block bg-ar-cyan/10 text-ar-cyan text-[0.68rem] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                {course.code} · {course.group}
+              </span>
+              {course.period && (
+                <span className="inline-block bg-usb-border text-usb-muted text-[0.68rem] font-semibold px-2.5 py-1 rounded-full">
+                  {course.period}
+                </span>
+              )}
+            </div>
             <h3 className="font-bold text-[0.95rem] text-usb-text leading-snug">{course.name}</h3>
           </div>
           <ChevronRight size={16} className="text-usb-faint group-hover:text-ar-cyan transition-colors mt-1 flex-shrink-0 ml-2" />
