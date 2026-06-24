@@ -3,7 +3,7 @@
  * Carga los cursos del profesor desde la API y los muestra como tarjetas.
  * Al hacer clic en una tarjeta navega a /grades/:courseId.
  */
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, Upload, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
@@ -93,31 +93,26 @@ export default function Dashboard() {
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
   const [uploadCourse, setUploadCourse]   = useState<BackendCourse | null>(null)
 
-  const [search, setSearch]         = useState('')
-  const [debouncedSearch, setDebounced] = useState('')
-  const [sort, setSort]             = useState<SortMode>('default')
-  const [page, setPage]             = useState(1)
-  const debounceRef                 = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [search, setSearch]             = useState('')   // valor del input (no dispara fetch)
+  const [committedSearch, setCommitted] = useState('')   // lo que se envió al back (Enter / X)
+  const [sort, setSort]                 = useState<SortMode>('default')
+  const [page, setPage]                 = useState(1)
 
   const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
 
-  // Debounce search → reset page + trigger backend fetch
-  const handleSearch = (value: string) => {
+  const commitSearch = (value: string) => {
     setSearch(value)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      setDebounced(value)
-      setPage(1)
-    }, 350)
+    setCommitted(value)
+    setPage(1)
   }
 
-  // Fetch current page from backend (with search forwarded to backend)
+  // Fetch cuando cambia página, búsqueda confirmada o profesor
   useEffect(() => {
     if (!professorId) return
     let cancelled = false
     setLoading(true)
     const skip = (page - 1) * PAGE_SIZE
-    courseService.listByProfessorPaginated(professorId, skip, PAGE_SIZE, debouncedSearch)
+    courseService.listByProfessorPaginated(professorId, skip, PAGE_SIZE, committedSearch)
       .then(({ courses: data, total: t }) => {
         if (cancelled) return
         setCourses(data)
@@ -126,7 +121,7 @@ export default function Dashboard() {
       .catch(() => { if (!cancelled) setCourses([]) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [professorId, page, debouncedSearch])
+  }, [professorId, page, committedSearch])
 
   // Fetch student counts once via summary endpoint (1 call for all courses)
   useEffect(() => {
@@ -197,7 +192,47 @@ export default function Dashboard() {
           </p>
         </motion.div>
 
-        {loading && courses.length === 0 && (
+        {/* Toolbar — siempre visible una vez que hay datos o búsqueda activa */}
+        {(courses.length > 0 || committedSearch) && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+            <div className="relative flex-1">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'var(--text-faint)' }}
+              />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') commitSearch(search) }}
+                placeholder="Buscar por nombre o código… (Enter para buscar)"
+                className="w-full pl-9 pr-9 py-2 rounded-xl text-sm outline-none transition-all"
+                style={{ background: 'white', border: '1px solid rgba(0,0,0,0.09)', color: 'var(--text-dark)' }}
+                onFocus={e => (e.currentTarget.style.border = '1px solid rgba(0,117,74,0.40)')}
+                onBlur={e  => (e.currentTarget.style.border = '1px solid rgba(0,0,0,0.09)')}
+              />
+              {search && (
+                <button
+                  onClick={() => commitSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--text-faint)' }}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <SortButton mode="alpha"    label="A → Z" />
+              <SortButton mode="students" label="Más estudiantes" />
+            </div>
+            <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
+              {total} materia{total !== 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
+
+        {/* Spinner — carga inicial o cambio de página/búsqueda */}
+        {loading && (
           <div className="flex items-center justify-center py-20">
             <div
               className="w-10 h-10 rounded-full border-4 animate-spin"
@@ -206,93 +241,39 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Empty state */}
-        {!loading && courses.length === 0 && (
-          <div
-            className="p-12 bg-white rounded-2xl border-2 border-dashed text-center"
-            style={{ borderColor: 'rgba(0,0,0,0.10)' }}
-          >
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ background: 'var(--canvas-warm)', border: '1px solid rgba(0,0,0,0.08)' }}
-            >
+        {/* Sin cursos asignados (nunca ha tenido, no hay búsqueda activa) */}
+        {!loading && courses.length === 0 && !committedSearch && (
+          <div className="p-12 bg-white rounded-2xl border-2 border-dashed text-center" style={{ borderColor: 'rgba(0,0,0,0.10)' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                 style={{ background: 'var(--canvas-warm)', border: '1px solid rgba(0,0,0,0.08)' }}>
               <BookOpen size={24} style={{ color: 'var(--text-faint)' }} />
             </div>
-            <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--text-dark)' }}>
-              Aún no tienes materias asignadas
-            </h3>
+            <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--text-dark)' }}>Aún no tienes materias asignadas</h3>
             <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
-              Tus materias aparecerán aquí automáticamente una vez que seas asignado
-              a cursos en el período académico activo.
+              Tus materias aparecerán aquí automáticamente una vez que seas asignado a cursos en el período académico activo.
             </p>
           </div>
         )}
 
+        {/* Sin resultados para la búsqueda */}
+        {!loading && courses.length === 0 && committedSearch && (
+          <div className="py-16 text-center">
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-faint)' }}>
+              No se encontraron materias para «{committedSearch}»
+            </p>
+            <button
+              onClick={() => commitSearch('')}
+              className="mt-3 text-xs font-bold hover:underline"
+              style={{ color: 'var(--green-accent)' }}
+            >
+              Limpiar búsqueda
+            </button>
+          </div>
+        )}
+
         {/* Course grid */}
-        {courses.length > 0 && (
+        {!loading && courses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: 'var(--text-faint)' }}
-                />
-                <input
-                  value={search}
-                  onChange={e => handleSearch(e.target.value)}
-                  placeholder="Buscar por nombre, código o grupo…"
-                  className="w-full pl-9 pr-9 py-2 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: 'white',
-                    border: '1px solid rgba(0,0,0,0.09)',
-                    color: 'var(--text-dark)',
-                  }}
-                  onFocus={e => (e.currentTarget.style.border = '1px solid rgba(0,117,74,0.40)')}
-                  onBlur={e  => (e.currentTarget.style.border = '1px solid rgba(0,0,0,0.09)')}
-                />
-                {search && (
-                  <button
-                    onClick={() => handleSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                    style={{ color: 'var(--text-faint)' }}
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-
-              {/* Sort buttons */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <SortButton mode="alpha"    label="A → Z" />
-                <SortButton mode="students" label="Más estudiantes" />
-              </div>
-
-              {/* Count */}
-              <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
-                {total} materia{total !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {/* No results */}
-            {filteredAndSorted.length === 0 && (
-              <div className="py-16 text-center">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-faint)' }}>
-                  No se encontraron materias para «{search}»
-                </p>
-                <button
-                  onClick={() => handleSearch('')}
-                  className="mt-3 text-xs font-bold hover:underline"
-                  style={{ color: 'var(--green-accent)' }}
-                >
-                  Limpiar búsqueda
-                </button>
-              </div>
-            )}
 
             {/* Grid */}
             {filteredAndSorted.length > 0 && (
