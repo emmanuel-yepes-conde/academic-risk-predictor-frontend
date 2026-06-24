@@ -60,10 +60,23 @@ export const courseService = {
     return Array.isArray(res) ? res : (res.data ?? [])
   },
 
-  /** Lista secciones asignadas a un profesor. */
-  async listByProfessor(professorId: string): Promise<BackendCourse[]> {
-    const res = await api.get<BackendCourse[] | PaginatedResponse<BackendCourse>>(`/professors/${professorId}/courses`)
+  /** Lista secciones asignadas a un profesor (todas — para el flujo de calificaciones). */
+  async listByProfessor(professorId: string, limit = 500): Promise<BackendCourse[]> {
+    const res = await api.get<BackendCourse[] | PaginatedResponse<BackendCourse>>(`/professors/${professorId}/courses?limit=${limit}`)
     return Array.isArray(res) ? res : (res.data ?? [])
+  },
+
+  /** Lista paginada de secciones de un profesor — para el Dashboard. */
+  async listByProfessorPaginated(
+    professorId: string,
+    skip = 0,
+    limit = 15,
+  ): Promise<{ courses: BackendCourse[]; total: number }> {
+    const res = await api.get<BackendCourse[] | PaginatedResponse<BackendCourse>>(
+      `/professors/${professorId}/courses?skip=${skip}&limit=${limit}`,
+    )
+    if (Array.isArray(res)) return { courses: res, total: res.length }
+    return { courses: res.data ?? [], total: res.total ?? (res.data?.length ?? 0) }
   },
 
   /** Obtiene el profesor asignado a una sección. */
