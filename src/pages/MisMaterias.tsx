@@ -178,15 +178,14 @@ export default function MisMaterias() {
         return
       }
 
-      const settled = await Promise.allSettled(
-        relevant.map(async (e) => {
+      // Fetch course details sequentially to avoid overwhelming the backend
+      const allEnrolled: EnrolledCourse[] = []
+      for (const e of relevant) {
+        try {
           const course = await courseService.getById(e.course_id)
-          return { course, enrollmentStatus: e.status } as EnrolledCourse
-        }),
-      )
-      const allEnrolled = settled
-        .filter((r): r is PromiseFulfilledResult<EnrolledCourse> => r.status === 'fulfilled')
-        .map(r => r.value)
+          allEnrolled.push({ course, enrollmentStatus: e.status } as EnrolledCourse)
+        } catch { /* ignore individual failures */ }
+      }
 
       const byProgram = allEnrolled.reduce((acc, ec) => {
         const pid = ec.course.program_id ?? 'sin-programa'
@@ -195,18 +194,16 @@ export default function MisMaterias() {
         return acc
       }, {} as Record<string, EnrolledCourse[]>)
 
-      const groupPromises = Object.entries(byProgram).map(
-        async ([programId, courses]): Promise<ProgramGroup> => {
+      // Resolve program groups sequentially to avoid overwhelming the backend
+      const resolvedGroups: ProgramGroup[] = []
+      for (const [programId, courses] of Object.entries(byProgram)) {
+        try {
           let program: BackendProgram | null = null
           let pensumSubjects: BackendSubject[] = []
 
           if (programId !== 'sin-programa') {
-            const [progRes, pensumRes] = await Promise.allSettled([
-              programService.getProgram(programId),
-              subjectService.listByProgram(programId),
-            ])
-            if (progRes.status === 'fulfilled') program = progRes.value
-            if (pensumRes.status === 'fulfilled') pensumSubjects = pensumRes.value
+            try { program = await programService.getProgram(programId) } catch { /* ignore */ }
+            try { pensumSubjects = await subjectService.listByProgram(programId) } catch { /* ignore */ }
           }
 
           const activeCourses    = courses.filter(c => c.enrollmentStatus === 'ACTIVE')
@@ -217,16 +214,10 @@ export default function MisMaterias() {
             ? pensumSubjects.reduce((s, subj) => s + subj.credits, 0)
             : activeCredits + completedCredits
 
-          return { programId, program, activeCourses, completedCourses, pensumSubjects, activeCredits, completedCredits, totalCredits }
-        },
-      )
-
-      const groupSettled = await Promise.allSettled(groupPromises)
-      setGroups(
-        groupSettled
-          .filter((r): r is PromiseFulfilledResult<ProgramGroup> => r.status === 'fulfilled')
-          .map(r => r.value),
-      )
+          resolvedGroups.push({ programId, program, activeCourses, completedCourses, pensumSubjects, activeCredits, completedCredits, totalCredits })
+        } catch { /* ignore individual group failures */ }
+      }
+      setGroups(resolvedGroups)
     } catch (err) {
       console.error('[MisMaterias] Error:', err)
       setError(err instanceof ApiError

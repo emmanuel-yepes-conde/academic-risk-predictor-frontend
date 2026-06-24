@@ -3,10 +3,10 @@
  * Carga los cursos del profesor desde la API y los muestra como tarjetas.
  * Al hacer clic en una tarjeta navega a /grades/:courseId.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, RefreshCw, Upload, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
+import { BookOpen, Upload, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import type { Step } from 'react-joyride'
 import { useAuth } from '../context/AuthContext'
 import { useGrades } from '../context/GradesContext'
@@ -15,7 +15,7 @@ import SubjectCard from '../components/SubjectCard'
 import TourGuide from '../components/TourGuide'
 import { useTour } from '../hooks/useTour'
 import DocumentUploadModal from '../components/DocumentUploadModal'
-import { courseService, type BackendCourse } from '../services/courseService'
+import type { BackendCourse } from '../services/courseService'
 
 const TOUR_STEPS: Step[] = [
   {
@@ -87,11 +87,8 @@ export default function Dashboard() {
   const { user }           = useAuth()
   const navigate           = useNavigate()
   const { run, onTourEnd } = useTour('professor-dashboard', user?.id)
-  const { courseStudentsMap, courseList, loadingCourses } = useGrades()
+  const { courseStudentsMap, courseList, loadingCourses, refreshCourses } = useGrades()
 
-  const [courses, setCourses]         = useState<BackendCourse[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState<string | null>(null)
   const [uploadCourse, setUploadCourse] = useState<BackendCourse | null>(null)
 
   // Search / sort / pagination
@@ -99,7 +96,26 @@ export default function Dashboard() {
   const [sort, setSort]     = useState<SortMode>('default')
   const [page, setPage]     = useState(1)
 
-  // Derive student counts from GradesContext (populated sequentially — no extra requests)
+  // Derive course list directly from GradesContext — no duplicate API call needed.
+  // GradesContext already loads courses on login; this just maps to BackendCourse shape.
+  const courses = useMemo<BackendCourse[]>(() =>
+    courseList.map(c => ({
+      id:              c.id,
+      subject_id:      '',
+      section:         c.group,
+      academic_period: c.semester,
+      professor_id:    c.professorId,
+      status:          'ACTIVE' as const,
+      created_at:      '',
+      code:            c.code,
+      name:            c.name,
+      credits:         0,
+      program_id:      c.program ?? '',
+    })),
+    [courseList],
+  )
+
+  // Derive student counts from GradesContext (populated in batches — no extra requests)
   const studentCounts = useMemo<Record<string, number>>(() => {
     const counts: Record<string, number> = {}
     for (const [courseId, students] of Object.entries(courseStudentsMap)) {
@@ -108,49 +124,14 @@ export default function Dashboard() {
     return counts
   }, [courseStudentsMap])
 
-  const isEmail     = user?.name.includes('@')
-  const displayName = isEmail ? user?.name.split('@')[0] : user?.name.split(' ')[0]
-
+  // Trigger course load if the professor lands on Dashboard directly
+  // (GradesContext only loads via ProfessorGrades otherwise)
   const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
-
-  const load = useCallback(async () => {
-    if (!professorId) return
-    setLoading(true)
-    setError(null)
-    try {
-      const list = await courseService.listByProfessor(professorId)
-      setCourses(list)
-    } catch {
-      setError('No se pudieron cargar las materias. Verifica tu conexión.')
-    } finally {
-      setLoading(false)
-    }
-  }, [professorId])
-
-  useEffect(() => { void load() }, [load])
-
-  // Also sync from GradesContext courses if available (avoids duplicate requests)
   useEffect(() => {
-    if (!loadingCourses && courseList.length > 0 && courses.length === 0) {
-      // GradesContext already loaded courses — reuse them to avoid extra API call
-      setCourses(
-        courseList.map(c => ({
-          id: c.id,
-          subject_id: '',
-          section: c.group,
-          academic_period: c.semester,
-          professor_id: c.professorId,
-          status: 'ACTIVE' as const,
-          created_at: '',
-          code: c.code,
-          name: c.name,
-          credits: 0,
-          program_id: '',
-        }))
-      )
-      setLoading(false)
+    if (professorId && courseList.length === 0 && !loadingCourses) {
+      void refreshCourses(professorId)
     }
-  }, [courseList, loadingCourses, courses.length])
+  }, [professorId, courseList.length, loadingCourses, refreshCourses])
 
   // Reset page when search or sort changes
   useEffect(() => { setPage(1) }, [search, sort])
@@ -177,8 +158,11 @@ export default function Dashboard() {
   const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE))
   const paginated  = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const now     = new Date()
-  const hour    = now.getHours()
+  const isEmail     = user?.name.includes('@')
+  const displayName = isEmail ? user?.name.split('@')[0] : user?.name.split(' ')[0]
+
+  const now      = new Date()
+  const hour     = now.getHours()
   const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
 
   const SortButton = ({ mode, label }: { mode: SortMode; label: string }) => (
@@ -219,8 +203,8 @@ export default function Dashboard() {
           </p>
         </motion.div>
 
-        {/* Loading */}
-        {loading && (
+        {/* Loading — uses GradesContext Phase 1 flag (clears as soon as course list arrives) */}
+        {loadingCourses && courses.length === 0 && (
           <div className="flex items-center justify-center py-20">
             <div
               className="w-10 h-10 rounded-full border-4 animate-spin"
@@ -229,23 +213,8 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Error */}
-        {!loading && error && (
-          <div className="p-6 bg-white rounded-2xl border border-red-200 text-center">
-            <p className="text-sm text-red-600 font-semibold mb-3">{error}</p>
-            <button
-              onClick={load}
-              className="flex items-center gap-2 text-sm font-bold mx-auto px-4 py-2 rounded-xl text-white"
-              style={{ background: 'var(--green-accent)' }}
-            >
-              <RefreshCw size={13} />
-              Reintentar
-            </button>
-          </div>
-        )}
-
         {/* Empty state */}
-        {!loading && !error && courses.length === 0 && (
+        {!loadingCourses && courses.length === 0 && (
           <div
             className="p-12 bg-white rounded-2xl border-2 border-dashed text-center"
             style={{ borderColor: 'rgba(0,0,0,0.10)' }}
@@ -267,7 +236,7 @@ export default function Dashboard() {
         )}
 
         {/* Course grid */}
-        {!loading && !error && courses.length > 0 && (
+        {courses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 
             {/* Toolbar */}

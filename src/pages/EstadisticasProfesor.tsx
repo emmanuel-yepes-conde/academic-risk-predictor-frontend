@@ -51,34 +51,28 @@ export default function EstadisticasProfesor() {
       // 1. Get professor's courses
       const courses = await courseService.listByProfessor(professorId)
 
-      // 2. Resolve program names
+      // 2. Resolve program names — sequential to avoid overwhelming the backend
       const programIds = [...new Set(courses.map(c => c.program_id).filter(Boolean))]
       const programNames: Record<string, string> = {}
-      const nameResults = await Promise.allSettled(
-        programIds.map(async (pid) => {
+      for (const pid of programIds) {
+        try {
           const prog = await programService.getProgram(pid)
-          return { pid, name: prog.program_name }
-        }),
-      )
-      for (const r of nameResults) {
-        if (r.status === 'fulfilled') {
-          programNames[r.value.pid] = r.value.name
-        } else {
-          console.warn('[EstadisticasProfesor] Failed to resolve program name:', r.reason)
+          programNames[pid] = prog.program_name
+        } catch {
+          console.warn('[EstadisticasProfesor] Failed to resolve program name for:', pid)
         }
       }
 
-      // 3. For each course, get enrolled students
-      const enriched: CourseWithStudents[] = await Promise.all(
-        courses.map(async (course) => {
-          try {
-            const students = await courseService.listCourseStudents(course.id, professorId)
-            return { course, students, programName: programNames[course.program_id] ?? course.program_id }
-          } catch {
-            return { course, students: [], programName: programNames[course.program_id] ?? course.program_id }
-          }
-        }),
-      )
+      // 3. For each course, get enrolled students — sequential to avoid overwhelming the backend
+      const enriched: CourseWithStudents[] = []
+      for (const course of courses) {
+        try {
+          const students = await courseService.listCourseStudents(course.id, professorId)
+          enriched.push({ course, students, programName: programNames[course.program_id] ?? course.program_id })
+        } catch {
+          enriched.push({ course, students: [], programName: programNames[course.program_id] ?? course.program_id })
+        }
+      }
 
       setCoursesData(enriched)
 

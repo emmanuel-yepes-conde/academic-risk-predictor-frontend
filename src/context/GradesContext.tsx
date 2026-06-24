@@ -242,59 +242,77 @@ export function GradesProvider({ children }: { children: ReactNode }) {
     try {
       const backendCourses = await courseService.listByProfessor(professorId)
 
-      // Collect unique program IDs and resolve their names
+      // Resolve program names sequentially (typically 3-5 unique programs — fast)
       const programIds = [...new Set(backendCourses.map(bc => bc.program_id).filter(Boolean))]
       const programNames: Record<string, string> = {}
-      const progResults = await Promise.allSettled(
-        programIds.map(async (pid) => {
+      for (const pid of programIds) {
+        try {
           const prog = await programService.getProgram(pid)
-          return { pid, name: prog.program_name }
-        }),
-      )
-      for (const r of progResults) {
-        if (r.status === 'fulfilled') {
-          programNames[r.value.pid] = r.value.name
-        } else {
-          console.warn('[GradesContext] Could not resolve program name:', r.reason)
+          programNames[pid] = prog.program_name
+        } catch {
+          console.warn('[GradesContext] Could not resolve program name for:', pid)
         }
       }
 
-      // Fetch students for each course SEQUENTIALLY to avoid overwhelming the backend.
-      // Concurrent Promise.all with many courses + students can exhaust the DB connection pool.
+      // ── Phase 1: show the course list immediately so the dashboard is usable.
+      // Students start at 0 and fill in as Phase 2 completes in the background.
+      const initialCourses = backendCourses.map(bc =>
+        backendToFrontend(bc, professorId, [], programNames[bc.program_id] ?? bc.program_id, null),
+      )
+      setCourseList(initialCourses)
+      setLoading(false) // ← unblock the UI now, before student loading begins
+
+      // ── Phase 2: load students + grade structure in small batches.
+      // BATCH_SIZE = 4 means at most 4 concurrent DB queries at any point.
+      // Progressive per-batch state updates are safe for Grades.tsx because
+      // courseStudentsList.length for the selected course only changes once
+      // (0 → N) when its own batch is processed — no cascade re-fires.
+      const BATCH_SIZE = 4
       const studentsMap: Record<string, Student[]> = {}
-      const coursesWithStudents: Course[] = []
-      for (const bc of backendCourses) {
-        let backendStudents: BackendUser[] = []
-        let persistedGrades: Record<string, unknown> | null = null
-        try {
-          backendStudents = await courseService.listCourseStudents(bc.id, professorId)
-        } catch { /* empty */ }
-        try {
-          const response = await enrollmentService.getCourseGradesStructure(bc.id)
-          persistedGrades = response.grades
-        } catch { /* empty */ }
+      const coursesWithStudents: Course[] = [...initialCourses]
 
-        const students: Student[] = backendStudents.map(s => ({
-          id:          s.id,
-          studentCode: s.student_institutional_id ?? s.institutional_email ?? s.email,
-          name:        s.full_name,
-          program:     '',
-          semester:    0,
-        }))
-        studentsMap[bc.id] = students
-        coursesWithStudents.push(backendToFrontend(
-          bc,
-          professorId,
-          students.map(s => s.id),
-          programNames[bc.program_id] ?? bc.program_id,
-          persistedGrades,
-        ))
+      for (let i = 0; i < backendCourses.length; i += BATCH_SIZE) {
+        const batch = backendCourses.slice(i, i + BATCH_SIZE)
+
+        const batchResults = await Promise.allSettled(
+          batch.map(async (bc) => {
+            let backendStudents: BackendUser[] = []
+            let persistedGrades: Record<string, unknown> | null = null
+            try {
+              backendStudents = await courseService.listCourseStudents(bc.id, professorId)
+            } catch { /* empty */ }
+            try {
+              const response = await enrollmentService.getCourseGradesStructure(bc.id)
+              persistedGrades = response.grades
+            } catch { /* empty */ }
+            return { bc, backendStudents, persistedGrades }
+          }),
+        )
+
+        for (const result of batchResults) {
+          if (result.status !== 'fulfilled') continue
+          const { bc, backendStudents, persistedGrades } = result.value
+          const students: Student[] = backendStudents.map(s => ({
+            id:          s.id,
+            studentCode: s.student_institutional_id ?? s.institutional_email ?? s.email,
+            name:        s.full_name,
+            program:     '',
+            semester:    0,
+          }))
+          studentsMap[bc.id] = students
+          const updated = backendToFrontend(
+            bc, professorId, students.map(s => s.id),
+            programNames[bc.program_id] ?? bc.program_id, persistedGrades,
+          )
+          const idx = coursesWithStudents.findIndex(c => c.id === bc.id)
+          if (idx >= 0) coursesWithStudents[idx] = updated
+          else coursesWithStudents.push(updated)
+        }
+
+        // Update state after each batch so student counts fill in progressively.
+        setCourseStudentsMap({ ...studentsMap })
+        setCourseList([...coursesWithStudents])
       }
-
-      // Single update at the end — intermediate updates caused Grades.tsx useEffects
-      // to re-fire once per student added, generating cascading requests.
-      setCourseStudentsMap(studentsMap)
-      setCourseList(coursesWithStudents)
     } catch (err) {
       console.error('[GradesContext] Failed to load courses:', err)
       setCourseList([])

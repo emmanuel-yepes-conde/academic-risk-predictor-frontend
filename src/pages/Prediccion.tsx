@@ -1053,12 +1053,15 @@ export default function Prediccion() {
         active.forEach(e => map.set(e.course_id, e))
         setEnrollmentMap(map)
 
-        const settled = await Promise.allSettled(active.map(e => courseService.getById(e.course_id)))
-        setEnrolledCourses(
-          settled
-            .filter((r): r is PromiseFulfilledResult<BackendCourse> => r.status === 'fulfilled')
-            .map(r => r.value)
-        )
+        // Fetch course details sequentially to avoid overwhelming the backend
+        const enrolledCourses: BackendCourse[] = []
+        for (const e of active) {
+          try {
+            const course = await courseService.getById(e.course_id)
+            enrolledCourses.push(course)
+          } catch { /* ignore individual failures */ }
+        }
+        setEnrolledCourses(enrolledCourses)
       } catch { /* ignore */ } finally {
         setCoursesLoading(false)
       }
