@@ -87,7 +87,7 @@ export default function Dashboard() {
   const { user }           = useAuth()
   const navigate           = useNavigate()
   const { run, onTourEnd } = useTour('professor-dashboard', user?.id)
-  const { courseStudentsMap, courseList, loadingCourses } = useGrades()
+  const { courseStudentsMap, courseList, loadingCourses, refreshCourses } = useGrades()
 
   const [uploadCourse, setUploadCourse] = useState<BackendCourse | null>(null)
 
@@ -123,6 +123,15 @@ export default function Dashboard() {
     }
     return counts
   }, [courseStudentsMap])
+
+  // Trigger course load if the professor lands on Dashboard directly
+  // (GradesContext only loads via ProfessorGrades otherwise)
+  const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
+  useEffect(() => {
+    if (professorId && courseList.length === 0 && !loadingCourses) {
+      void refreshCourses(professorId)
+    }
+  }, [professorId, courseList.length, loadingCourses, refreshCourses])
 
   // Reset page when search or sort changes
   useEffect(() => { setPage(1) }, [search, sort])
