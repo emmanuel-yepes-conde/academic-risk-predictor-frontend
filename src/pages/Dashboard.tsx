@@ -111,19 +111,21 @@ export default function Dashboard() {
   const isEmail     = user?.name.includes('@')
   const displayName = isEmail ? user?.name.split('@')[0] : user?.name.split(' ')[0]
 
+  const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
+
   const load = useCallback(async () => {
-    if (!user?.professorId) return
+    if (!professorId) return
     setLoading(true)
     setError(null)
     try {
-      const list = await courseService.listByProfessor(user.professorId)
+      const list = await courseService.listByProfessor(professorId)
       setCourses(list)
     } catch {
       setError('No se pudieron cargar las materias. Verifica tu conexión.')
     } finally {
       setLoading(false)
     }
-  }, [user?.professorId])
+  }, [professorId])
 
   useEffect(() => { void load() }, [load])
 
