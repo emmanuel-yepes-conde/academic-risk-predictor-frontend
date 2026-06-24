@@ -56,7 +56,7 @@ function CourseCard({ course, index, onClick, onUpload, studentCount }: CourseCa
   return (
     <div className="flex flex-col gap-1.5">
       <SubjectCard
-        course={{ code: course.code, name: course.name, group: course.section ?? '', components: [] }}
+        course={{ code: course.code, name: course.name, group: course.section ?? '', period: course.academic_period, components: [] }}
         studentCount={studentCount}
         completionPct={0}
         atRiskCount={0}
