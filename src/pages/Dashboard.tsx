@@ -3,7 +3,7 @@
  * Carga los cursos del profesor desde la API y los muestra como tarjetas.
  * Al hacer clic en una tarjeta navega a /grades/:courseId.
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, Upload, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
@@ -93,19 +93,31 @@ export default function Dashboard() {
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
   const [uploadCourse, setUploadCourse]   = useState<BackendCourse | null>(null)
 
-  const [search, setSearch] = useState('')
-  const [sort, setSort]     = useState<SortMode>('default')
-  const [page, setPage]     = useState(1)
+  const [search, setSearch]         = useState('')
+  const [debouncedSearch, setDebounced] = useState('')
+  const [sort, setSort]             = useState<SortMode>('default')
+  const [page, setPage]             = useState(1)
+  const debounceRef                 = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
 
-  // Fetch current page from backend on page change
+  // Debounce search → reset page + trigger backend fetch
+  const handleSearch = (value: string) => {
+    setSearch(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setDebounced(value)
+      setPage(1)
+    }, 350)
+  }
+
+  // Fetch current page from backend (with search forwarded to backend)
   useEffect(() => {
     if (!professorId) return
     let cancelled = false
     setLoading(true)
     const skip = (page - 1) * PAGE_SIZE
-    courseService.listByProfessorPaginated(professorId, skip, PAGE_SIZE)
+    courseService.listByProfessorPaginated(professorId, skip, PAGE_SIZE, debouncedSearch)
       .then(({ courses: data, total: t }) => {
         if (cancelled) return
         setCourses(data)
@@ -114,7 +126,7 @@ export default function Dashboard() {
       .catch(() => { if (!cancelled) setCourses([]) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [professorId, page])
+  }, [professorId, page, debouncedSearch])
 
   // Fetch student counts once via summary endpoint (1 call for all courses)
   useEffect(() => {
@@ -124,28 +136,19 @@ export default function Dashboard() {
       .catch(() => {})
   }, [professorId])
 
-  // Reset page when search or sort changes
-  useEffect(() => { setPage(1) }, [search, sort])
+  // Reset page when sort changes
+  useEffect(() => { setPage(1) }, [sort])
 
-  // Client-side filter + sort within the current page
+  // Client-side sort only (search is now server-side)
   const filteredAndSorted = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    let result = q
-      ? courses.filter(c =>
-          c.name.toLowerCase().includes(q) ||
-          c.code.toLowerCase().includes(q) ||
-          (c.section ?? '').toLowerCase().includes(q)
-        )
-      : [...courses]
-
+    const result = [...courses]
     if (sort === 'alpha') {
       result.sort((a, b) => a.name.localeCompare(b.name, 'es'))
     } else if (sort === 'students') {
       result.sort((a, b) => (studentCounts[b.id] ?? 0) - (studentCounts[a.id] ?? 0))
     }
-
     return result
-  }, [courses, search, sort, studentCounts])
+  }, [courses, sort, studentCounts])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -241,7 +244,7 @@ export default function Dashboard() {
                 />
                 <input
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={e => handleSearch(e.target.value)}
                   placeholder="Buscar por nombre, código o grupo…"
                   className="w-full pl-9 pr-9 py-2 rounded-xl text-sm outline-none transition-all"
                   style={{
@@ -254,7 +257,7 @@ export default function Dashboard() {
                 />
                 {search && (
                   <button
-                    onClick={() => setSearch('')}
+                    onClick={() => handleSearch('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                     style={{ color: 'var(--text-faint)' }}
                   >
@@ -271,7 +274,7 @@ export default function Dashboard() {
 
               {/* Count */}
               <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
-                {filteredAndSorted.length} de {total}
+                {total} materia{total !== 1 ? 's' : ''}
               </span>
             </div>
 
@@ -282,7 +285,7 @@ export default function Dashboard() {
                   No se encontraron materias para «{search}»
                 </p>
                 <button
-                  onClick={() => setSearch('')}
+                  onClick={() => handleSearch('')}
                   className="mt-3 text-xs font-bold hover:underline"
                   style={{ color: 'var(--green-accent)' }}
                 >
