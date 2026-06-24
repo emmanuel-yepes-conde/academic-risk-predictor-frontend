@@ -71,9 +71,12 @@ export const courseService = {
     professorId: string,
     skip = 0,
     limit = 15,
+    search = '',
   ): Promise<{ courses: BackendCourse[]; total: number }> {
+    const qs = new URLSearchParams({ skip: String(skip), limit: String(limit) })
+    if (search) qs.set('search', search)
     const res = await api.get<BackendCourse[] | PaginatedResponse<BackendCourse>>(
-      `/professors/${professorId}/courses?skip=${skip}&limit=${limit}`,
+      `/professors/${professorId}/courses?${qs}`,
     )
     if (Array.isArray(res)) return { courses: res, total: res.length }
     return { courses: res.data ?? [], total: res.total ?? (res.data?.length ?? 0) }
