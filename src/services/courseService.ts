@@ -60,8 +60,8 @@ export const courseService = {
     return Array.isArray(res) ? res : (res.data ?? [])
   },
 
-  /** Lista secciones asignadas a un profesor (todas — para el flujo de calificaciones). */
-  async listByProfessor(professorId: string, limit = 500): Promise<BackendCourse[]> {
+  /** Lista secciones asignadas a un profesor (para el flujo de calificaciones). */
+  async listByProfessor(professorId: string, limit = 50): Promise<BackendCourse[]> {
     const res = await api.get<BackendCourse[] | PaginatedResponse<BackendCourse>>(`/professors/${professorId}/courses?limit=${limit}`)
     return Array.isArray(res) ? res : (res.data ?? [])
   },
