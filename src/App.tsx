@@ -16,7 +16,10 @@ import AsistenciaEstudiante from './pages/AsistenciaEstudiante'
 import PerfilPage from './pages/Perfil'
 import ConsentModal from './components/ConsentModal'
 import { consentService } from './services/consentService'
-import { useGrades } from './context/GradesContext'
+import { useGrades, defaultCuts, defaultComponents } from './context/GradesContext'
+import { courseService } from './services/courseService'
+import { enrollmentService } from './services/enrollmentService'
+import type { Course } from './types'
 import { ConsentContext } from './context/ConsentContext'
 
 // ─── Error Boundary ──────────────────────────────────────────────────────────
@@ -90,41 +93,82 @@ function ProfessorGrades() {
 
   const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
 
-  // Track whether the initial course-load has completed so we never bounce
-  // back to /dashboard before courses arrive from the API.
-  const [coursesReady, setCoursesReady] = useState(() => courseList.length > 0)
+  const [activeCourse, setActiveCourse] = useState<Course | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (professorId) {
-      void refreshCourses(professorId).then(() => setCoursesReady(true))
-    } else {
-      setCoursesReady(true)
-    }
-  }, [professorId, refreshCourses])
+    if (!urlCourseId || !professorId) { setReady(true); return }
 
-  // Sync URL param → selectedCourseId whenever they diverge
-  useEffect(() => {
-    if (urlCourseId && urlCourseId !== selectedCourseId) {
-      setSelectedCourseId(urlCourseId)
+    // 1. Try to find course already in GradesContext (fast path)
+    const fromCtx = courseList.find(c => c.id === urlCourseId)
+    if (fromCtx) { setActiveCourse(fromCtx); setReady(true); return }
+
+    // 2. Load the specific course by ID directly — no need to load all courses
+    const load = async () => {
+      try {
+        const [bc, students] = await Promise.all([
+          courseService.getById(urlCourseId),
+          courseService.listCourseStudents(urlCourseId, professorId).catch(() => []),
+        ])
+        let persistedGrades: Record<string, unknown> | null = null
+        try {
+          const gr = await enrollmentService.getCourseGradesStructure(urlCourseId)
+          persistedGrades = gr.grades as Record<string, unknown>
+        } catch { /* use defaults */ }
+
+        const course: Course = {
+          id:         bc.id,
+          code:       bc.code,
+          name:       bc.name,
+          group:      bc.section,
+          professorId,
+          semester:   bc.academic_period ?? '',
+          studentIds: students.map((s: { id: string }) => s.id),
+          cuts:       defaultCuts(bc.id),
+          components: defaultComponents(bc.id),
+          program:    bc.program_id ?? '',
+        }
+
+        // Apply persisted evaluation config if available
+        if (bc.evaluation_config && typeof bc.evaluation_config === 'object') {
+          const rawCuts = (bc.evaluation_config as Record<string, unknown>).cuts
+          if (Array.isArray(rawCuts) && rawCuts.length > 0) {
+            // keep defaults — full parse happens inside GradesContext when refreshCourses runs
+          }
+        }
+
+        setActiveCourse(course)
+
+        // Load all courses in background so grade mutations have full context
+        void refreshCourses(professorId).catch(() => {/* background, ignore failures */})
+      } catch {
+        navigate('/dashboard', { replace: true })
+      } finally {
+        setReady(true)
+      }
     }
+
+    void load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlCourseId, professorId])
+
+  // Keep activeCourse in sync if GradesContext finishes loading in background
+  useEffect(() => {
+    if (!urlCourseId) return
+    const fromCtx = courseList.find(c => c.id === urlCourseId)
+    if (fromCtx) setActiveCourse(fromCtx)
+  }, [courseList, urlCourseId])
+
+  // Sync URL → context selection
+  useEffect(() => {
+    if (urlCourseId && urlCourseId !== selectedCourseId) setSelectedCourseId(urlCourseId)
   }, [urlCourseId, selectedCourseId, setSelectedCourseId])
 
-  const myCourses = courseList.filter(c => c.professorId === professorId)
-  // Prefer the URL param, then the context selection, then the first course
-  const activeCourse =
-    myCourses.find(c => c.id === urlCourseId) ??
-    myCourses.find(c => c.id === selectedCourseId) ??
-    myCourses[0] ??
-    null
-
-  // Show a spinner while we wait for the initial fetch to complete
-  if (!coursesReady) {
+  if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--canvas-warm)' }}>
-        <div
-          className="w-10 h-10 rounded-full border-4 animate-spin"
-          style={{ borderColor: 'var(--green-light)', borderTopColor: 'var(--green-accent)' }}
-        />
+        <div className="w-10 h-10 rounded-full border-4 animate-spin"
+             style={{ borderColor: 'var(--green-light)', borderTopColor: 'var(--green-accent)' }} />
       </div>
     )
   }
@@ -137,14 +181,8 @@ function ProfessorGrades() {
       grades={grades}
       lastSaved={lastSaved}
       onUpdateGrade={updateGrade}
-      onUpdateComponents={(id, comps) => {
-        updateComponents(id, comps)
-        setSelectedCourseId(id)
-      }}
-      onUpdateCuts={(id, cuts) => {
-        updateCuts(id, cuts)
-        setSelectedCourseId(id)
-      }}
+      onUpdateComponents={(id, comps) => { updateComponents(id, comps); setSelectedCourseId(id) }}
+      onUpdateCuts={(id, cuts) => { updateCuts(id, cuts); setSelectedCourseId(id) }}
       onBack={() => { setSelectedCourseId(null); navigate('/dashboard') }}
       onLogout={logout}
     />

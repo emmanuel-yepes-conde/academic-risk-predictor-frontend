@@ -33,7 +33,7 @@ interface GradesContextValue {
 const GradesContext = createContext<GradesContextValue | null>(null)
 
 // ─── Default cuts + components ────────────────────────────────────────────────
-function defaultCuts(courseId: string): GradeCut[] {
+export function defaultCuts(courseId: string): GradeCut[] {
   return [
     { id: `${courseId}-cut1`, name: 'Corte 1',     percentage: 30 },
     { id: `${courseId}-cut2`, name: 'Corte 2',     percentage: 30 },
@@ -41,7 +41,7 @@ function defaultCuts(courseId: string): GradeCut[] {
   ]
 }
 
-function defaultComponents(courseId: string): GradeComponent[] {
+export function defaultComponents(courseId: string): GradeComponent[] {
   return [
     { id: `${courseId}-p1`, cutId: `${courseId}-cut1`, name: 'Parcial 1', percentage: 30 },
     { id: `${courseId}-p2`, cutId: `${courseId}-cut2`, name: 'Parcial 2', percentage: 30 },
@@ -315,7 +315,7 @@ export function GradesProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('[GradesContext] Failed to load courses:', err)
-      setCourseList([])
+      throw err
     } finally {
       setLoading(false)
     }
