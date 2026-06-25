@@ -26,6 +26,7 @@ interface GradesContextValue {
   updateComponents:          (courseId: string, components: Course['components']) => void
   updateCuts:                (courseId: string, cuts: GradeCut[]) => void
   refreshCourses:            (professorId: string) => Promise<void>
+  loadCourseStudents:        (courseId: string, professorId: string) => Promise<void>
   clearCourses:              () => void
   removeStudentFromCourse:   (courseId: string, studentId: string) => Promise<void>
 }
@@ -254,65 +255,11 @@ export function GradesProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // ── Phase 1: show the course list immediately so the dashboard is usable.
-      // Students start at 0 and fill in as Phase 2 completes in the background.
+      // Load course list only — students are loaded on-demand per course
       const initialCourses = backendCourses.map(bc =>
         backendToFrontend(bc, professorId, [], programNames[bc.program_id] ?? bc.program_id, null),
       )
       setCourseList(initialCourses)
-      setLoading(false) // ← unblock the UI now, before student loading begins
-
-      // ── Phase 2: load students + grade structure in small batches.
-      // BATCH_SIZE = 4 means at most 4 concurrent DB queries at any point.
-      // Progressive per-batch state updates are safe for Grades.tsx because
-      // courseStudentsList.length for the selected course only changes once
-      // (0 → N) when its own batch is processed — no cascade re-fires.
-      const BATCH_SIZE = 4
-      const studentsMap: Record<string, Student[]> = {}
-      const coursesWithStudents: Course[] = [...initialCourses]
-
-      for (let i = 0; i < backendCourses.length; i += BATCH_SIZE) {
-        const batch = backendCourses.slice(i, i + BATCH_SIZE)
-
-        const batchResults = await Promise.allSettled(
-          batch.map(async (bc) => {
-            let backendStudents: BackendUser[] = []
-            let persistedGrades: Record<string, unknown> | null = null
-            try {
-              backendStudents = await courseService.listCourseStudents(bc.id, professorId)
-            } catch { /* empty */ }
-            try {
-              const response = await enrollmentService.getCourseGradesStructure(bc.id)
-              persistedGrades = response.grades
-            } catch { /* empty */ }
-            return { bc, backendStudents, persistedGrades }
-          }),
-        )
-
-        for (const result of batchResults) {
-          if (result.status !== 'fulfilled') continue
-          const { bc, backendStudents, persistedGrades } = result.value
-          const students: Student[] = backendStudents.map(s => ({
-            id:          s.id,
-            studentCode: s.student_institutional_id ?? s.institutional_email ?? s.email,
-            name:        s.full_name,
-            program:     '',
-            semester:    0,
-          }))
-          studentsMap[bc.id] = students
-          const updated = backendToFrontend(
-            bc, professorId, students.map(s => s.id),
-            programNames[bc.program_id] ?? bc.program_id, persistedGrades,
-          )
-          const idx = coursesWithStudents.findIndex(c => c.id === bc.id)
-          if (idx >= 0) coursesWithStudents[idx] = updated
-          else coursesWithStudents.push(updated)
-        }
-
-        // Update state after each batch so student counts fill in progressively.
-        setCourseStudentsMap({ ...studentsMap })
-        setCourseList([...coursesWithStudents])
-      }
     } catch (err) {
       console.error('[GradesContext] Failed to load courses:', err)
       throw err
@@ -322,6 +269,24 @@ export function GradesProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const clearCourses = useCallback(() => { setCourseList([]); setCourseStudentsMap({}) }, [])
+
+  const loadCourseStudents = useCallback(async (courseId: string, professorId: string) => {
+    try {
+      const backendStudents = await courseService.listCourseStudents(courseId, professorId)
+      const students: Student[] = backendStudents.map((s: BackendUser) => ({
+        id:          s.id,
+        studentCode: s.student_institutional_id ?? s.institutional_email ?? s.email,
+        name:        s.full_name,
+        program:     '',
+        semester:    0,
+      }))
+      setCourseStudentsMap(prev => ({ ...prev, [courseId]: students }))
+      // Update studentIds on the course entry
+      setCourseList(prev => prev.map(c =>
+        c.id === courseId ? { ...c, studentIds: students.map(s => s.id) } : c,
+      ))
+    } catch { /* silently ignore */ }
+  }, [])
 
   // ── Grade mutations ────────────────────────────────────────────────────────
   const updateGrade = (studentId: string, componentId: string, value: number | null) => {
@@ -382,6 +347,7 @@ export function GradesProvider({ children }: { children: ReactNode }) {
         updateComponents,
         updateCuts,
         refreshCourses,
+        loadCourseStudents,
         clearCourses,
         removeStudentFromCourse,
       }}
