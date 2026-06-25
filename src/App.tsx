@@ -88,17 +88,19 @@ function ProfessorGrades() {
   const { user, logout } = useAuth()
   const { courseList, grades, lastSaved, selectedCourseId, setSelectedCourseId, updateGrade, updateComponents, updateCuts, refreshCourses } = useGrades()
 
+  const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
+
   // Track whether the initial course-load has completed so we never bounce
   // back to /dashboard before courses arrive from the API.
   const [coursesReady, setCoursesReady] = useState(() => courseList.length > 0)
 
   useEffect(() => {
-    if (user?.professorId) {
-      void refreshCourses(user.professorId).then(() => setCoursesReady(true))
+    if (professorId) {
+      void refreshCourses(professorId).then(() => setCoursesReady(true))
     } else {
       setCoursesReady(true)
     }
-  }, [user?.professorId, refreshCourses])
+  }, [professorId, refreshCourses])
 
   // Sync URL param → selectedCourseId whenever they diverge
   useEffect(() => {
@@ -107,7 +109,7 @@ function ProfessorGrades() {
     }
   }, [urlCourseId, selectedCourseId, setSelectedCourseId])
 
-  const myCourses = courseList.filter(c => c.professorId === user?.professorId)
+  const myCourses = courseList.filter(c => c.professorId === professorId)
   // Prefer the URL param, then the context selection, then the first course
   const activeCourse =
     myCourses.find(c => c.id === urlCourseId) ??
