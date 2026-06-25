@@ -89,7 +89,7 @@ function ProfessorGrades() {
   const navigate = useNavigate()
   const { courseId: urlCourseId } = useParams<{ courseId: string }>()
   const { user, logout } = useAuth()
-  const { courseList, grades, lastSaved, selectedCourseId, setSelectedCourseId, updateGrade, updateComponents, updateCuts, refreshCourses } = useGrades()
+  const { courseList, grades, lastSaved, selectedCourseId, setSelectedCourseId, updateGrade, updateComponents, updateCuts, refreshCourses, loadCourseStudents } = useGrades()
 
   const professorId = user?.professorId ?? (user?.role === 'professor' ? user?.id : undefined)
 
@@ -139,7 +139,9 @@ function ProfessorGrades() {
 
         setActiveCourse(course)
 
-        // Load all courses in background so grade mutations have full context
+        // Load students for this course into GradesContext (used by Grades.tsx grade table)
+        void loadCourseStudents(urlCourseId, professorId)
+        // Load course list in background for grade mutations context
         void refreshCourses(professorId).catch(() => {/* background, ignore failures */})
       } catch {
         navigate('/dashboard', { replace: true })
