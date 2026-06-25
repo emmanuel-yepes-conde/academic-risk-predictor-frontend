@@ -168,9 +168,12 @@ export default function GradesPage({
   const [simStudentId, setSimStudentId] = useState<string>('all')
   const { user } = useAuth()
   const { run: tourRun, onTourEnd: tourEnd } = useTour('professor-grades', user?.id)
-  const { courseStudentsMap, removeStudentFromCourse } = useGrades()
-  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
+  const { courseStudentsMap } = useGrades()
+  const [gradePage, setGradePage] = useState(1)
+  const GRADE_PAGE_SIZE = 15
   const courseStudentsList = courseStudentsMap[course.id] ?? []
+  const gradePageStudents = courseStudentsList.slice((gradePage - 1) * GRADE_PAGE_SIZE, gradePage * GRADE_PAGE_SIZE)
+  const gradeTotalPages = Math.max(1, Math.ceil(courseStudentsList.length / GRADE_PAGE_SIZE))
   const totalPct = course.components.reduce((s, c) => s + c.percentage, 0)
   const cutsTotal = (course.cuts ?? []).reduce((s, c) => s + c.percentage, 0)
   const normalizedNames = course.components.map(c => c.name.trim().toLowerCase())
@@ -195,14 +198,15 @@ export default function GradesPage({
   // ── Carga notas desde el backend al montar la vista de un curso ──────────────
   // Esto sincroniza las notas guardadas en la BD con el estado local del profesor,
   // evitando que aparezcan vacías cuando se insertaron directamente en la BD.
+  // Reset grade page when course changes
+  useEffect(() => { setGradePage(1) }, [course.id])
+
   useEffect(() => {
-    if (!courseStudentsList.length) return
+    if (!gradePageStudents.length) return
     let cancelled = false
 
     const loadBackendGrades = async () => {
-      // Process students SEQUENTIALLY to avoid overwhelming the backend with concurrent requests.
-      // Promise.all with 30+ students × 2 requests each = 60+ concurrent DB queries.
-      for (const student of courseStudentsList) {
+      for (const student of gradePageStudents) {
         if (cancelled) break
         try {
           const enrollment = await enrollmentService.findByCourse(student.id, course.id)
@@ -263,11 +267,8 @@ export default function GradesPage({
 
     void loadBackendGrades()
     return () => { cancelled = true }
-  // Depends on courseStudentsList.length so it re-runs when students finish loading.
-  // GradesContext now does a single setState at the end (not per-student), so this
-  // fires at most twice: once with 0 students (early return), once with all students.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course.id, courseStudentsList.length])
+  }, [course.id, gradePage, gradePageStudents.length])
 
   const handleImport = (imported: Grade[]) => {
     imported.forEach(g => {
@@ -652,56 +653,29 @@ export default function GradesPage({
         >
           {activeTab === 'grades' && (
             <>
-              <GradeTable course={course} grades={grades} students={courseStudentsList} onUpdateGrade={onUpdateGrade} />
-              {/* ── Remove student section ── */}
-              {courseStudentsList.length > 0 && (
-                <div className="border-t border-usb-border px-5 py-4">
-                  <details className="group">
-                    <summary className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-usb-muted hover:text-usb-text transition-colors list-none">
-                      <Users size={13} />
-                      Gestión de matriculados ({courseStudentsList.length} estudiantes)
-                      <ChevronDown size={12} className="ml-auto group-open:rotate-180 transition-transform duration-200" />
-                    </summary>
-                    <div className="mt-3 space-y-1.5">
-                      {courseStudentsList.map(student => (
-                        <div
-                          key={student.id}
-                          className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl"
-                          style={{ background: 'var(--canvas-warm)', border: '1px solid rgba(0,0,0,0.06)' }}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-usb-text truncate">{student.name}</p>
-                            <p className="text-xs text-usb-faint font-mono">{student.studentCode}</p>
-                          </div>
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`¿Eliminar a ${student.name} del curso? Esta acción no se puede deshacer.`)) return
-                              setRemovingStudentId(student.id)
-                              try {
-                                await removeStudentFromCourse(course.id, student.id)
-                                toast.success('Estudiante eliminado', `${student.name} fue desvinculado del curso.`)
-                              } catch (err) {
-                                toast.error('No se pudo eliminar', friendlyError(err))
-                              } finally {
-                                setRemovingStudentId(null)
-                              }
-                            }}
-                            disabled={removingStudentId === student.id}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                            style={{ borderColor: '#fca5a5', color: '#b91c1c', background: '#fff5f5' }}
-                            onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#fee2e2' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '#fff5f5' }}
-                          >
-                            {removingStudentId === student.id
-                              ? <Loader2 size={11} className="animate-spin" />
-                              : <Trash2 size={11} />
-                            }
-                            Quitar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
+              <GradeTable course={course} grades={grades} students={gradePageStudents} onUpdateGrade={onUpdateGrade} />
+              {gradeTotalPages > 1 && (
+                <div className="flex items-center justify-between px-5 py-3 border-t border-usb-border">
+                  <span className="text-xs text-usb-muted">
+                    {(gradePage - 1) * GRADE_PAGE_SIZE + 1}–{Math.min(gradePage * GRADE_PAGE_SIZE, courseStudentsList.length)} de {courseStudentsList.length} estudiantes
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setGradePage(p => Math.max(1, p - 1))}
+                      disabled={gradePage === 1}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-usb-border text-usb-muted hover:text-usb-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      ← Anterior
+                    </button>
+                    <span className="text-xs text-usb-faint">Página {gradePage} de {gradeTotalPages}</span>
+                    <button
+                      onClick={() => setGradePage(p => Math.min(gradeTotalPages, p + 1))}
+                      disabled={gradePage === gradeTotalPages}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-usb-border text-usb-muted hover:text-usb-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
                 </div>
               )}
             </>
